@@ -17,10 +17,10 @@
   the iteration process.
 -->
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Language/Version**: [e.g., Python 3.11+ (REQUIRED), or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., Streamlit (UI), FastAPI, or NEEDS CLARIFICATION]  
+**Storage**: [if applicable, e.g., PostgreSQL, SQLite, files or N/A]  
+**Testing**: [e.g., Robot Framework (acceptance), pytest (unit) or NEEDS CLARIFICATION]  
 **Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
 **Project Type**: [single/web/mobile - determines source structure]  
 **Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
@@ -31,7 +31,11 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+**I. Domain-Driven Design (DDD)**: ✓ Domain models defined and bounded contexts established  
+**II. Python-First Development**: ✓ Python 3.11+ with type hints and documentation  
+**III. Streamlit-Based UI**: ✓ UI framework selection aligns with Streamlit requirement  
+**IV. Test-First with Robot Framework**: ✓ Robot Framework test strategy documented  
+**V. Git-Based Task Management**: ✓ Git workflow and commit strategy established
 
 ## Project Structure
 

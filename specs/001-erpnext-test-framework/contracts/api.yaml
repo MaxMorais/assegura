@@ -1,0 +1,654 @@
+openapi: 3.0.0
+info:
+  title: ERPNext Test Automation Meta-Framework API
+  description: API for managing personas, activities, journeys, and test execution
+  version: 1.0.0
+  
+servers:
+  - url: https://api.assegura.com/v1
+    description: Production server
+  - url: http://localhost:8000/v1  
+    description: Development server
+
+security:
+  - ConsultantAuth: []
+
+paths:
+  # Persona Management
+  /personas:
+    get:
+      summary: List all personas for authenticated consultant
+      tags: [Personas]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of personas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  personas:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Persona'
+                  total:
+                    type: integer
+                  
+    post:
+      summary: Create new persona
+      tags: [Personas]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonaCreate'
+      responses:
+        '201':
+          description: Persona created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Persona'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /personas/{persona_id}:
+    get:
+      summary: Get persona by ID
+      tags: [Personas]
+      parameters:
+        - name: persona_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Persona details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Persona'
+        '404':
+          description: Persona not found
+          
+    put:
+      summary: Update persona
+      tags: [Personas]
+      parameters:
+        - name: persona_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonaUpdate'
+      responses:
+        '200':
+          description: Persona updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Persona'
+                
+    delete:
+      summary: Delete persona
+      tags: [Personas]
+      parameters:
+        - name: persona_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Persona deleted successfully
+        '400':
+          description: Cannot delete persona with existing activities
+
+  # Activity Management  
+  /personas/{persona_id}/activities:
+    get:
+      summary: List activities for persona
+      tags: [Activities]
+      parameters:
+        - name: persona_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of activities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Activity'
+                      
+    post:
+      summary: Create new activity for persona
+      tags: [Activities]
+      parameters:
+        - name: persona_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityCreate'
+      responses:
+        '201':
+          description: Activity created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+
+  # Journey Management
+  /activities/{activity_id}/journeys:
+    get:
+      summary: List journeys for activity
+      tags: [Journeys]
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of journeys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  journeys:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Journey'
+                      
+    post:
+      summary: Create new journey for activity
+      tags: [Journeys]
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JourneyCreate'
+      responses:
+        '201':
+          description: Journey created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journey'
+
+  # Action Library
+  /actions:
+    get:
+      summary: List available actions in library
+      tags: [Actions]
+      parameters:
+        - name: classification
+          in: query
+          schema:
+            type: string
+            enum: [Given, When, Then]
+        - name: erpnext_module
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of available actions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  actions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Action'
+
+  # Test Generation & Execution
+  /journeys/{journey_id}/generate-tests:
+    post:
+      summary: Generate Robot Framework tests from journey
+      tags: [Test Generation]
+      parameters:
+        - name: journey_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Test generation initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    format: uuid
+                  estimated_completion:
+                    type: string
+                    format: date-time
+
+  /test-suites/{suite_id}/execute:
+    post:
+      summary: Execute test suite in cloud environment
+      tags: [Test Execution]
+      parameters:
+        - name: suite_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionRequest'
+      responses:
+        '202':
+          description: Test execution queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  execution_id:
+                    type: string
+                    format: uuid
+                  queue_position:
+                    type: integer
+                  estimated_start:
+                    type: string
+                    format: date-time
+
+  /executions/{execution_id}:
+    get:
+      summary: Get test execution status and results
+      tags: [Test Execution]
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Execution status and results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResult'
+
+  # ERPNext Instance Management
+  /erpnext-instances:
+    get:
+      summary: List ERPNext instance connections
+      tags: [ERPNext Integration]
+      responses:
+        '200':
+          description: List of configured instances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  instances:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ERPNextInstance'
+                      
+    post:
+      summary: Configure new ERPNext instance connection
+      tags: [ERPNext Integration]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ERPNextInstanceCreate'
+      responses:
+        '201':
+          description: Instance configured successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERPNextInstance'
+
+components:
+  securitySchemes:
+    ConsultantAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Persona:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        erpnext_roles:
+          type: array
+          items:
+            type: string
+        user_permissions:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          
+    PersonaCreate:
+      type: object
+      required: [name, erpnext_roles]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        erpnext_roles:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        user_permissions:
+          type: object
+          
+    PersonaUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        erpnext_roles:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        user_permissions:
+          type: object
+
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        erpnext_module:
+          type: string
+        business_context:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          
+    ActivityCreate:
+      type: object
+      required: [name, description, erpnext_module]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          minLength: 10
+          maxLength: 1000
+        erpnext_module:
+          type: string
+          enum: [Sales, Purchase, Stock, Accounts, HR, Manufacturing, Projects, CRM]
+        business_context:
+          type: string
+          maxLength: 500
+
+    Journey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        step_sequence:
+          type: array
+          items:
+            $ref: '#/components/schemas/JourneyStep'
+        expected_outcome:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          
+    JourneyCreate:
+      type: object
+      required: [name, step_sequence, expected_outcome]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        step_sequence:
+          type: array
+          items:
+            $ref: '#/components/schemas/JourneyStep'
+          minItems: 1
+        expected_outcome:
+          type: string
+          minLength: 10
+          maxLength: 500
+          
+    JourneyStep:
+      type: object
+      required: [action_id, parameters]
+      properties:
+        action_id:
+          type: string
+          format: uuid
+        parameters:
+          type: object
+        order:
+          type: integer
+
+    Action:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        classification:
+          type: string
+          enum: [Given, When, Then]
+        description:
+          type: string
+        parameters_schema:
+          type: object
+        output_schema:
+          type: object
+        implementation_type:
+          type: string
+          enum: [API_Call, UI_Interaction, Validation]
+        erpnext_module:
+          type: string
+
+    ExecutionRequest:
+      type: object
+      required: [erpnext_instance_id]
+      properties:
+        erpnext_instance_id:
+          type: string
+          format: uuid
+        test_data_overrides:
+          type: object
+        execution_options:
+          type: object
+          properties:
+            timeout_minutes:
+              type: integer
+              default: 30
+            retry_count:
+              type: integer
+              default: 1
+
+    ExecutionResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        execution_status:
+          type: string
+          enum: [Queued, Running, Completed, Failed, Cancelled]
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        pass_count:
+          type: integer
+        fail_count:
+          type: integer
+        execution_log:
+          type: string
+        error_details:
+          type: object
+        duration_seconds:
+          type: integer
+
+    ERPNextInstance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        base_url:
+          type: string
+          format: uri
+        is_active:
+          type: boolean
+        last_connected:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+          
+    ERPNextInstanceCreate:
+      type: object
+      required: [name, base_url, api_key, api_secret]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        base_url:
+          type: string
+          format: uri
+        api_key:
+          type: string
+          minLength: 1
+        api_secret:
+          type: string
+          minLength: 1
+
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string

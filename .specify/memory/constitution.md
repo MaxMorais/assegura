@@ -1,50 +1,58 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+SYNC IMPACT REPORT
+==================
+Version change: N/A → 1.0.0 (Initial constitution creation)
+
+Added principles:
+- I. Domain-Driven Design (DDD)
+- II. Python-First Development  
+- III. Streamlit-Based UI (NON-NEGOTIABLE)
+- IV. Test-First with Robot Framework
+- V. Git-Based Task Management
+
+Added sections:
+- Technology Standards
+- Development Workflow
+
+Template updates:
+✅ plan-template.md: Updated Constitution Check section and technical context defaults
+✅ tasks-template.md: Updated testing requirements from optional to mandatory per constitution
+✅ spec-template.md: No changes needed (requirements-focused)
+✅ agent-file-template.md: No changes needed (generic template)
+✅ checklist-template.md: No changes needed (generic template)
+
+Follow-up TODOs: None - all placeholders resolved
+-->
+
+# Assegura Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Domain-Driven Design (DDD)
+All development MUST follow Domain-Driven Design principles. Business logic MUST be encapsulated in domain entities and services. Clear bounded contexts MUST be established and maintained. Ubiquitous language MUST be used consistently across code, documentation, and communication. Domain models MUST be technology-agnostic and testable in isolation.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Python-First Development
+Python 3.11+ is the REQUIRED development language. Code MUST follow PEP 8 style guidelines with type hints. All modules MUST include comprehensive docstrings. Dependencies MUST be managed through requirements.txt or pyproject.toml. Virtual environments are MANDATORY for all development work.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Streamlit-Based UI (NON-NEGOTIABLE)
+All user interfaces MUST use Streamlit framework. UI components MUST be modular and reusable. State management MUST follow Streamlit session state patterns. Custom components are permitted only when built-in components are insufficient. Performance considerations MUST be documented for complex UI flows.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Test-First with Robot Framework
+Robot Framework is MANDATORY for all acceptance tests. Test scenarios MUST be written before implementation begins. All user stories MUST have corresponding Robot Framework test suites. Test data MUST be separated from test logic using resource files. Tests MUST be executable in CI/CD pipelines.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Git-Based Task Management
+Every task MUST have a dedicated Git commit with descriptive messages. Commit messages MUST follow conventional commit format. Feature branches MUST be used for all development work. All commits MUST be atomic and focused on a single change. Merge requests MUST include task completion evidence.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technology Standards
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+Python 3.11+ with type hints and comprehensive documentation. Streamlit for all UI development with modular component architecture. Robot Framework for acceptance testing with clear separation of test data and logic. Git version control with conventional commits and feature branch workflow. Code quality enforced through linting, formatting, and type checking tools.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Development Workflow
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+All features begin with specification creation using spec-driven development process. Implementation follows Red-Green-Refactor cycle with Robot Framework tests written first. Each task requires dedicated Git commit with clear description and completion evidence. Code reviews MUST verify DDD principles, Python standards, and test coverage. Deployment MUST include test execution and verification steps.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other development practices and standards. All feature specifications and implementation plans MUST demonstrate compliance with core principles. Any deviation from NON-NEGOTIABLE principles requires explicit constitution amendment. Code reviews MUST include constitutional compliance verification. Complexity decisions MUST be justified against established principles.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-10-15 | **Last Amended**: 2025-10-15
