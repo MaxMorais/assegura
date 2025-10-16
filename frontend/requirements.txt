@@ -1,13 +1,13 @@
 # Core Streamlit Framework
-streamlit==1.28.2
+streamlit
 
 # HTTP Client for API Communication  
 requests==2.31.0
 httpx==0.25.2
 
 # Data Manipulation and Display
-pandas==2.1.3
-numpy==1.25.2
+pandas
+numpy
 
 # UI Components and Visualization
 plotly==5.17.0
