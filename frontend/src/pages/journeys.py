@@ -10,12 +10,18 @@ import streamlit as st
 from typing import Any, Dict, List, Optional
 import uuid
 
-from ..components.journey_builder.journey_builder import render_journey_builder
-from ..services.journey_service import JourneyAPIClient
-from ..services.activity_service import ActivityAPIClient
-from ..services.persona_service import PersonaAPIClient
-from ..components.shared.error_handler import handle_api_error
-from ..components.shared.loading_spinner import show_loading_spinner
+from components.journey_builder.journey_builder import render_journey_builder
+from services.journey_service import JourneyAPIClient
+from services.activity_service import ActivityService
+from services.persona_service import PersonaService
+from services.api_client import api_client
+
+# Temporary stub functions
+def handle_api_error(error, message):
+    st.error(f"{message}: {error}")
+
+def show_loading_spinner(message):
+    return st.spinner(message)
 
 
 def show_journeys() -> None:
@@ -24,8 +30,8 @@ def show_journeys() -> None:
     
     # Initialize services
     journey_service = JourneyAPIClient()
-    activity_service = ActivityAPIClient()
-    persona_service = PersonaAPIClient()
+    activity_service = ActivityService(api_client)
+    persona_service = PersonaService(api_client)
     
     # Initialize session state
     if "journeys_page_data" not in st.session_state:
@@ -62,7 +68,7 @@ def show_journeys() -> None:
         _render_journey_analytics(journey_service)
 
 
-def _load_initial_data(journey_service: JourneyAPIClient, activity_service: ActivityAPIClient, persona_service: PersonaAPIClient):
+def _load_initial_data(journey_service: JourneyAPIClient, activity_service: ActivityService, persona_service: PersonaService):
     """Load initial data for the page."""
     try:
         with show_loading_spinner("Loading journeys data..."):
@@ -71,12 +77,11 @@ def _load_initial_data(journey_service: JourneyAPIClient, activity_service: Acti
             journeys = journeys_response.get("items", [])
             
             # Load activities
-            activities_response = activity_service.list_activities(limit=1000)
-            activities = activities_response.get("items", [])
+            activities, _ = activity_service.list_activities(limit=1000)
             
             # Load personas
             personas_response = persona_service.list_personas(limit=1000)
-            personas = personas_response.get("items", [])
+            personas = personas_response.get("personas", [])
             
             st.session_state.journeys_page_data.update({
                 "journeys_list": journeys,
@@ -90,7 +95,7 @@ def _load_initial_data(journey_service: JourneyAPIClient, activity_service: Acti
         st.session_state.journeys_page_data["data_loaded"] = True
 
 
-def _render_journey_list(journey_service: JourneyAPIClient, activity_service: ActivityAPIClient, persona_service: PersonaAPIClient):
+def _render_journey_list(journey_service: JourneyAPIClient, activity_service: ActivityService, persona_service: PersonaService):
     """Render the journey list tab."""
     st.subheader("Journey List")
     
@@ -157,14 +162,15 @@ def _render_journey_card(journey: Dict[str, Any], journey_service: JourneyAPICli
             # Status badge
             status = journey.get('execution_status', 'not_started')
             status_colors = {
-                'not_started': 'secondary',
-                'ready': 'primary',
-                'running': 'warning',
-                'completed': 'success',
-                'failed': 'error',
-                'cancelled': 'secondary'
+                'not_started': '🟡',
+                'ready': '🟢',
+                'running': '🔵',
+                'completed': '✅',
+                'failed': '❌',
+                'cancelled': '⚪'
             }
-            st.badge(status.upper(), type=status_colors.get(status, 'secondary'))
+            status_icon = status_colors.get(status, '⚪')
+            st.write(f"{status_icon} {status.upper()}")
         
         with col3:
             # Journey properties
@@ -202,7 +208,7 @@ def _render_journey_card(journey: Dict[str, Any], journey_service: JourneyAPICli
         st.divider()
 
 
-def _render_create_journey(activity_service: ActivityAPIClient, persona_service: PersonaAPIClient):
+def _render_create_journey(activity_service: ActivityService, persona_service: PersonaService):
     """Render the create journey tab."""
     st.subheader("Create New Journey")
     

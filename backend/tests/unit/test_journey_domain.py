@@ -16,15 +16,11 @@ from src.domain.journeys.enhanced_journey import (
     JourneyExecutionStatus,
     JourneyComplexityLevel,
 )
-from src.domain.journeys.journey_validator import (
-    JourneyValidator,
-    JourneyValidationError,
-    ValidationResult,
-    ValidationSeverity,
-)
+from src.domain.journeys.journey_validation_error import JourneyValidationError
+from src.domain.journeys.journey_validator import JourneyValidator, ValidationSeverity
 from src.domain.journeys.journey_action_service import JourneyActionService
-from src.domain.actions.enhanced_action_library import (
-    EnhancedActionLibrary,
+from src.domain.actions.action_library import (
+    Action,
     ActionType,
     ImplementationType,
 )
@@ -492,9 +488,9 @@ class TestJourneyActionService:
                     dep_index = optimized_order.index(dep)
                     assert dep_index < i, f"Dependency {dep} should come before step {step_number}"
 
-    def _create_test_action(self) -> EnhancedActionLibrary:
+    def _create_test_action(self) -> Action:
         """Helper method to create a test action."""
-        return EnhancedActionLibrary(
+        return Action(
             id=uuid.uuid4(),
             name="Test Action",
             description="A test action",

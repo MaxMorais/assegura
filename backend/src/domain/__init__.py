@@ -16,9 +16,13 @@ from .base_entity import (
     ValueObject,
 )
 
+# Alias for backward compatibility
+Entity = AggregateRoot
+
 __all__ = [
     "BaseEntity",
     "AggregateRoot",
+    "Entity",  # Alias for AggregateRoot
     "ValueObject",
     "DomainService",
     "Repository",

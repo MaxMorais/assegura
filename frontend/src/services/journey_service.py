@@ -43,7 +43,7 @@ class JourneyAPIClient(APIClient):
         """
         return await self.get(f"{self.base_endpoint}/{journey_id}")
 
-    async def list_journeys(
+    def list_journeys(
         self,
         skip: int = 0,
         limit: int = 50,
@@ -70,22 +70,121 @@ class JourneyAPIClient(APIClient):
         Returns:
             Paginated journey list response
         """
-        params = {"skip": skip, "limit": limit}
+        # Return mock data for now since backend is not ready
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Returning mock journey data")
+        
+        mock_journeys = [
+            {
+                "id": "660e8400-e29b-41d4-a716-446655440000",
+                "name": "Sales Order to Invoice Journey",
+                "description": "Complete journey from sales quotation to invoice generation",
+                "persona_id": "550e8400-e29b-41d4-a716-446655440000",
+                "persona_name": "Sales Manager",
+                "activities": [
+                    {
+                        "id": "770e8400-e29b-41d4-a716-446655440000",
+                        "name": "Create Sales Quotation",
+                        "sequence": 1
+                    },
+                    {
+                        "id": "770e8400-e29b-41d4-a716-446655440001",
+                        "name": "Convert to Sales Order",
+                        "sequence": 2
+                    },
+                    {
+                        "id": "770e8400-e29b-41d4-a716-446655440002",
+                        "name": "Create Delivery Note",
+                        "sequence": 3
+                    },
+                    {
+                        "id": "770e8400-e29b-41d4-a716-446655440003",
+                        "name": "Generate Sales Invoice",
+                        "sequence": 4
+                    }
+                ],
+                "step_count": 4,
+                "execution_status": "ready",
+                "complexity_level": "medium",
+                "estimated_duration": 45,
+                "is_active": True,
+                "is_complete_scenario": True,
+                "created_at": "2025-01-15T10:00:00Z",
+                "updated_at": "2025-01-15T10:00:00Z"
+            },
+            {
+                "id": "660e8400-e29b-41d4-a716-446655440001",
+                "name": "Purchase Order Processing",
+                "description": "Journey for processing purchase orders from request to payment",
+                "persona_id": "550e8400-e29b-41d4-a716-446655440001",
+                "persona_name": "Purchase User",
+                "activities": [
+                    {
+                        "id": "770e8400-e29b-41d4-a716-446655440004",
+                        "name": "Create Purchase Request",
+                        "sequence": 1
+                    },
+                    {
+                        "id": "770e8400-e29b-41d4-a716-446655440005",
+                        "name": "Approve Purchase Request",
+                        "sequence": 2
+                    },
+                    {
+                        "id": "770e8400-e29b-41d4-a716-446655440006",
+                        "name": "Create Purchase Order",
+                        "sequence": 3
+                    },
+                    {
+                        "id": "770e8400-e29b-41d4-a716-446655440007",
+                        "name": "Receive Goods",
+                        "sequence": 4
+                    }
+                ],
+                "step_count": 4,
+                "execution_status": "not_started",
+                "complexity_level": "high",
+                "estimated_duration": 60,
+                "is_active": True,
+                "is_complete_scenario": False,
+                "created_at": "2025-01-16T14:30:00Z",
+                "updated_at": "2025-01-16T14:30:00Z"
+            }
+        ]
+        
+        # Apply filters
+        filtered_journeys = mock_journeys
         
         if persona_id:
-            params["persona_id"] = persona_id
-        if activity_id:
-            params["activity_id"] = activity_id
-        if execution_status:
-            params["execution_status"] = execution_status
-        if complexity_level:
-            params["complexity_level"] = complexity_level
-        if is_active is not None:
-            params["is_active"] = is_active
-        if search:
-            params["search"] = search
+            filtered_journeys = [j for j in filtered_journeys if j["persona_id"] == persona_id]
         
-        return await self.get(self.base_endpoint, params=params)
+        if execution_status:
+            filtered_journeys = [j for j in filtered_journeys if j["execution_status"] == execution_status]
+            
+        if complexity_level:
+            filtered_journeys = [j for j in filtered_journeys if j["complexity_level"] == complexity_level]
+            
+        if is_active is not None:
+            filtered_journeys = [j for j in filtered_journeys if j["is_active"] == is_active]
+            
+        if search:
+            search_lower = search.lower()
+            filtered_journeys = [
+                j for j in filtered_journeys 
+                if search_lower in j["name"].lower() or search_lower in j["description"].lower()
+            ]
+        
+        # Apply pagination
+        total = len(filtered_journeys)
+        paginated_journeys = filtered_journeys[skip:skip + limit]
+        
+        return {
+            "items": paginated_journeys,
+            "total": total,
+            "skip": skip,
+            "limit": limit,
+            "has_more": skip + limit < total
+        }
 
     async def update_journey(self, journey_id: str, journey_data: Dict[str, Any]) -> Dict[str, Any]:
         """

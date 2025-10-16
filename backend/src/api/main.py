@@ -278,8 +278,26 @@ def _configure_routes(app: "FastAPI") -> None:
     except ImportError:
         pass  # Activities module not ready yet
 
+    try:
+        from .personas.persona_routes import router as personas_router
+
+        app.include_router(personas_router, prefix="/api/v1")
+        logger.info("Personas router included successfully")
+    except ImportError as e:
+        logger.warning(f"Personas module not ready yet: {e}")
+        # Try to import with minimal dependencies
+        try:
+            # Import just the router definition without dependencies
+            import sys
+            sys.path.insert(0, '/app/src')
+            from api.personas.persona_routes import router as personas_router
+            app.include_router(personas_router, prefix="/api/v1")
+            logger.info("Personas router included with fallback import")
+        except Exception as e2:
+            logger.error(f"Failed to include personas router: {e2}")
+        pass  # Personas module not ready yet
+
     # TODO: Add remaining route includes when implemented
-    # app.include_router(personas.router, prefix="/personas", tags=["Personas"])
     # app.include_router(journeys.router, prefix="/journeys", tags=["Journeys"])
     # app.include_router(test_generation.router, prefix="/test-generation", tags=["Test Generation"])
 

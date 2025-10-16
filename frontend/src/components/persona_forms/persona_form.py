@@ -11,7 +11,12 @@ import streamlit as st
 from streamlit import session_state as ss
 from streamlit.delta_generator import DeltaGenerator
 
-from components.shared.validation import ValidationError
+from components.shared.validation import (
+    ValidationError,
+    display_validation_errors,
+    validate_required_field,
+    validate_text_length,
+)
 from services.api_client import APIClient
 
 logger = logging.getLogger(__name__)
@@ -166,12 +171,21 @@ class PersonaFormComponent:
         if container is None:
             container = st
 
-        with container:
+        # Use context manager only if container is not the main st module
+        if container is st:
+            # Render directly in main area
             if show_title:
                 st.subheader("📝 Create New Persona")
                 st.markdown(
                     "Define a new test persona with specific ERPNext roles and permissions."
                 )
+        else:
+            with container:
+                if show_title:
+                    st.subheader("📝 Create New Persona")
+                    st.markdown(
+                        "Define a new test persona with specific ERPNext roles and permissions."
+                    )
 
             # Display any existing errors
             if self.form_state.has_errors():

@@ -13,9 +13,10 @@ from httpx import AsyncClient
 from sqlalchemy.orm import Session
 
 from src.application.dto.activity_schemas import (
-    ActivityCreateRequest,
-    ActivityFilterRequest,
-    ActivityUpdateRequest,
+    ActivityCreateRequestDTODTO,
+    ActivityCreateResponseDTO,
+    ActivityUpdateRequestDTODTO,
+    ActivityFilterRequestDTODTO,
 )
 from src.application.services.activity_service import ActivityApplicationService
 from src.infrastructure.database.repositories.activity_repository import (
@@ -78,7 +79,7 @@ class TestActivityIntegration:
         """Test complete activity creation flow."""
 
         # Create activity through application service
-        create_request = ActivityCreateRequest(**sample_activity_data)
+        create_request = ActivityCreateRequestDTO(**sample_activity_data)
         created_activity = await activity_service.create_activity(create_request)
 
         # Verify activity was created
@@ -110,7 +111,7 @@ class TestActivityIntegration:
         """Test complete CRUD operations for activities."""
 
         # Create
-        create_request = ActivityCreateRequest(**sample_activity_data)
+        create_request = ActivityCreateRequestDTO(**sample_activity_data)
         created_activity = await activity_service.create_activity(create_request)
         activity_id = created_activity.id
 
@@ -128,7 +129,7 @@ class TestActivityIntegration:
             "tags": ["updated", "test"],
             "is_active": False,
         }
-        update_request = ActivityUpdateRequest(**update_data)
+        update_request = ActivityUpdateRequestDTO(**update_data)
         updated_activity = await activity_service.update_activity(
             activity_id, update_request
         )
@@ -190,12 +191,12 @@ class TestActivityIntegration:
 
         created_activities = []
         for data in activities_data:
-            request = ActivityCreateRequest(**data)
+            request = ActivityCreateRequestDTO(**data)
             activity = await activity_service.create_activity(request)
             created_activities.append(activity)
 
         # Test module filter
-        accounts_filter = ActivityFilterRequest(erpnext_module="Accounts")
+        accounts_filter = ActivityFilterRequestDTO(erpnext_module="Accounts")
         accounts_result = await activity_service.list_activities(
             accounts_filter, page=1, per_page=10
         )
@@ -203,7 +204,7 @@ class TestActivityIntegration:
         assert all(a.erpnext_module == "Accounts" for a in accounts_result.activities)
 
         # Test action type filter
-        create_filter = ActivityFilterRequest(action_type="create")
+        create_filter = ActivityFilterRequestDTO(action_type="create")
         create_result = await activity_service.list_activities(
             create_filter, page=1, per_page=10
         )
@@ -211,7 +212,7 @@ class TestActivityIntegration:
         assert create_result.activities[0].action_type == "create"
 
         # Test complexity filter
-        low_complexity_filter = ActivityFilterRequest(complexity_score=1)
+        low_complexity_filter = ActivityFilterRequestDTO(complexity_score=1)
         low_complexity_result = await activity_service.list_activities(
             low_complexity_filter, page=1, per_page=10
         )
@@ -219,7 +220,7 @@ class TestActivityIntegration:
         assert low_complexity_result.activities[0].complexity_score == 1
 
         # Test active status filter
-        active_filter = ActivityFilterRequest(is_active=True)
+        active_filter = ActivityFilterRequestDTO(is_active=True)
         active_result = await activity_service.list_activities(
             active_filter, page=1, per_page=10
         )
@@ -227,14 +228,14 @@ class TestActivityIntegration:
         assert all(a.is_active for a in active_result.activities)
 
         # Test search
-        search_filter = ActivityFilterRequest(search="invoice")
+        search_filter = ActivityFilterRequestDTO(search="invoice")
         search_result = await activity_service.list_activities(
             search_filter, page=1, per_page=10
         )
         assert search_result.total >= 2  # Should find activities with "invoice" in name
 
         # Test combined filters
-        combined_filter = ActivityFilterRequest(
+        combined_filter = ActivityFilterRequestDTO(
             erpnext_module="Accounts", is_active=True
         )
         combined_result = await activity_service.list_activities(
@@ -255,7 +256,7 @@ class TestActivityIntegration:
         activity_ids = []
         for i in range(5):
             data = {**sample_activity_data, "name": f"Bulk Test Activity {i+1}"}
-            request = ActivityCreateRequest(**data)
+            request = ActivityCreateRequestDTO(**data)
             activity = await activity_service.create_activity(request)
             activity_ids.append(activity.id)
 
@@ -333,7 +334,7 @@ class TestActivityIntegration:
         ]
 
         for data in activities_data:
-            request = ActivityCreateRequest(**data)
+            request = ActivityCreateRequestDTO(**data)
             await activity_service.create_activity(request)
 
         # Get statistics
@@ -391,12 +392,12 @@ class TestActivityIntegration:
         }
 
         # Create first activity
-        first_request = ActivityCreateRequest(**activity_data)
+        first_request = ActivityCreateRequestDTO(**activity_data)
         first_activity = await activity_service.create_activity(first_request)
 
         # Try to create duplicate
         with pytest.raises(Exception):  # Should raise ActivityAlreadyExistsError
-            second_request = ActivityCreateRequest(**activity_data)
+            second_request = ActivityCreateRequestDTO(**activity_data)
             await activity_service.create_activity(second_request)
 
         # Test invalid complexity score
@@ -406,7 +407,7 @@ class TestActivityIntegration:
             "complexity_score": 6,
         }
         with pytest.raises(Exception):  # Should raise ValidationError
-            invalid_request = ActivityCreateRequest(**invalid_data)
+            invalid_request = ActivityCreateRequestDTO(**invalid_data)
             await activity_service.create_activity(invalid_request)
 
         # Test invalid duration
@@ -416,13 +417,13 @@ class TestActivityIntegration:
             "estimated_duration": 0,
         }
         with pytest.raises(Exception):  # Should raise ValidationError
-            invalid_request = ActivityCreateRequest(**invalid_data)
+            invalid_request = ActivityCreateRequestDTO(**invalid_data)
             await activity_service.create_activity(invalid_request)
 
         # Test empty name
         invalid_data = {**activity_data, "name": ""}
         with pytest.raises(Exception):  # Should raise ValidationError
-            invalid_request = ActivityCreateRequest(**invalid_data)
+            invalid_request = ActivityCreateRequestDTO(**invalid_data)
             await activity_service.create_activity(invalid_request)
 
     async def test_activity_persona_relationships(
@@ -433,7 +434,7 @@ class TestActivityIntegration:
         """Test activity-persona relationship management."""
 
         # Create test activity
-        activity_request = ActivityCreateRequest(**sample_activity_data)
+        activity_request = ActivityCreateRequestDTO(**sample_activity_data)
         activity = await activity_service.create_activity(activity_request)
 
         # Create mock persona IDs for testing

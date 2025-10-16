@@ -23,10 +23,12 @@ from .exceptions import (
     PersonaValidationError,
 )
 from .persona import Persona
+from .persona_service import PersonaService
 
 __all__ = [
     # Main entities
     "Persona",
+    "PersonaService",
     # Value objects
     "ERPNextRole",
     # Validation functions

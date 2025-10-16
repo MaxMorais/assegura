@@ -11,12 +11,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 import uuid
 
-from ...services.journey_service import JourneyAPIClient
-from ...services.action_service import ActionAPIClient
+from services.journey_service import JourneyAPIClient
+from services.action_service import ActionAPIClient
 from .action_selector import ActionSelector
 from .step_sequence import StepSequence
-from ..shared.error_handler import handle_api_error
-from ..shared.loading_spinner import show_loading_spinner
+from components.shared.error_handler import handle_api_error
+from components.shared.loading_spinner import show_loading_spinner
 
 
 class JourneyBuilder:

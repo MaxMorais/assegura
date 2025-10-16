@@ -322,3 +322,68 @@ def validate_form_data(
             field_value = validated_value
 
     return validator.get_errors()
+
+
+def display_validation_errors(errors: dict[str, list[str]]) -> None:
+    """Display validation errors in Streamlit UI.
+
+    Args:
+        errors: Dictionary of field names to list of error messages
+    """
+    try:
+        import streamlit as st
+    except ImportError:
+        return
+
+    if not errors:
+        return
+
+    for field_name, field_errors in errors.items():
+        for error in field_errors:
+            st.error(f"**{field_name}**: {error}")
+
+
+def validate_required_field(value: Any, field_name: str) -> bool:
+    """Validate that a field is not empty.
+
+    Args:
+        value: Field value to validate
+        field_name: Name of the field (for error messages)
+
+    Returns:
+        True if valid, False otherwise
+    """
+    try:
+        validate_required(value, field_name)
+        return True
+    except ValidationError:
+        return False
+
+
+def validate_text_length(
+    text: str,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
+    field_name: str = "Text"
+) -> bool:
+    """Validate text length constraints.
+
+    Args:
+        text: Text to validate
+        min_length: Minimum allowed length
+        max_length: Maximum allowed length
+        field_name: Name of the field (for error messages)
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if not isinstance(text, str):
+        return False
+
+    if min_length is not None and len(text) < min_length:
+        return False
+
+    if max_length is not None and len(text) > max_length:
+        return False
+
+    return True

@@ -90,10 +90,7 @@ def render_personas_page():
     page_state = PersonaPageState()
 
     # Page title and navigation
-    st.title("🎭 Test Personas Management")
-    st.markdown(
-        "Create and manage test personas that represent different user types in your ERPNext system."
-    )
+    st.markdown("Create and manage test personas that represent different user types in your ERPNext system.")
 
     # Handle confirmation dialogs
     _handle_confirmation_dialogs(api_client, page_state)
@@ -138,7 +135,7 @@ def _render_personas_list_view(api_client: APIClient, page_state: PersonaPageSta
 
     # Render list with callbacks
     action = list_component.render_persona_list(
-        show_title=False,  # We have our own title
+        show_title=True,  # Show the create button and title
         on_persona_click=lambda p: page_state.set_view("view", p),
         on_persona_edit=lambda p: page_state.set_view("edit", p),
         on_persona_delete=lambda p: page_state.set_confirmation("delete_persona", p),

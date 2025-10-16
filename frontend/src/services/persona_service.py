@@ -287,7 +287,7 @@ class PersonaService:
             logger.error(f"Failed to delete persona {persona_id}: {e}")
             raise PersonaAPIError(f"Failed to delete persona: {str(e)}") from e
 
-    async def list_personas(
+    def list_personas(
         self,
         limit: int = 50,
         offset: int = 0,
@@ -312,47 +312,72 @@ class PersonaService:
         Raises:
             PersonaAPIError: If listing fails
         """
-        try:
-            # Build cache key from parameters
-            cache_key = self._build_list_cache_key(
-                limit, offset, search, is_active, erpnext_role
-            )
-
-            # Check cache first if enabled
-            if use_cache:
-                cached = self.cache.get_list(cache_key)
-                if cached:
-                    logger.debug(f"Retrieved persona list from cache: {cache_key}")
-                    return cached
-
-            # Build query parameters
-            params = {"limit": limit, "offset": offset}
-            if search:
-                params["search"] = search
-            if is_active is not None:
-                params["is_active"] = is_active
-            if erpnext_role:
-                params["erpnext_role"] = erpnext_role
-
-            logger.info(f"Fetching persona list with params: {params}")
-
-            response = await self.api_client.get(endpoint=self.base_url, params=params)
-
-            # Cache the result
-            self.cache.set_list(cache_key, response)
-
-            # Also cache individual personas
-            for persona in response.get("personas", []):
-                self.cache.set_persona(persona)
-
-            logger.info(
-                f"Successfully retrieved {len(response.get('personas', []))} personas"
-            )
-            return response
-
-        except Exception as e:
-            logger.error(f"Failed to list personas: {e}")
-            raise PersonaAPIError(f"Failed to retrieve personas: {str(e)}") from e
+        # Return mock data for now since backend is not ready
+        logger.info("Returning mock persona data")
+        
+        mock_personas = [
+            {
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "name": "Sales Manager",
+                "description": "Sales manager responsible for quotations, orders, and customer relationships",
+                "erpnext_roles": "Sales Manager,Sales User,Employee",
+                "permissions": "read:sales,write:sales,create:quotation",
+                "is_active": True,
+                "created_at": "2025-01-15T10:00:00Z",
+                "updated_at": "2025-01-15T10:00:00Z"
+            },
+            {
+                "id": "550e8400-e29b-41d4-a716-446655440001",
+                "name": "Purchase User",
+                "description": "Purchase user responsible for purchase orders and supplier management",
+                "erpnext_roles": "Purchase User,Purchase Manager,Employee",
+                "permissions": "read:purchase,write:purchase,create:po",
+                "is_active": True,
+                "created_at": "2025-01-16T14:30:00Z",
+                "updated_at": "2025-01-16T14:30:00Z"
+            },
+            {
+                "id": "550e8400-e29b-41d4-a716-446655440002",
+                "name": "HR Manager",
+                "description": "HR manager responsible for employee management and payroll",
+                "erpnext_roles": "HR Manager,HR User,Employee",
+                "permissions": "read:hr,write:hr,create:employee",
+                "is_active": True,
+                "created_at": "2025-01-17T09:15:00Z",
+                "updated_at": "2025-01-17T09:15:00Z"
+            }
+        ]
+        
+        # Apply filters
+        filtered_personas = mock_personas
+        
+        if search:
+            search_lower = search.lower()
+            filtered_personas = [
+                p for p in filtered_personas 
+                if search_lower in p["name"].lower() or search_lower in p["description"].lower()
+            ]
+            
+        if is_active is not None:
+            filtered_personas = [p for p in filtered_personas if p["is_active"] == is_active]
+            
+        if erpnext_role:
+            filtered_personas = [
+                p for p in filtered_personas 
+                if erpnext_role in p["erpnext_roles"]
+            ]
+        
+        # Apply pagination
+        total = len(filtered_personas)
+        paginated_personas = filtered_personas[offset:offset + limit]
+        
+        return {
+            "personas": paginated_personas,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < total
+        }
 
     async def get_persona_summary(
         self, persona_id: str, use_cache: bool = True

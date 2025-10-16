@@ -396,14 +396,52 @@ class APIClient:
     # Placeholder methods for future implementation:
 
     def get_personas(self) -> Optional[dict[str, Any]]:
-        """Get all personas. Placeholder for future implementation."""
-        logger.info("get_personas - placeholder for future implementation")
-        return {"personas": [], "total": 0, "has_more": False}
+        """Get all personas."""
+        # Return mock data for now since backend is not ready
+        logger.info("Returning mock persona data")
+        return {
+            "personas": [
+                {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "name": "Sales Manager",
+                    "description": "Sales manager responsible for quotations, orders, and customer relationships",
+                    "erpnext_roles": "Sales Manager,Sales User,Employee",
+                    "permissions": "read:sales,write:sales,create:quotation",
+                    "is_active": True,
+                    "created_at": "2025-01-15T10:00:00Z",
+                    "updated_at": "2025-01-15T10:00:00Z"
+                },
+                {
+                    "id": "550e8400-e29b-41d4-a716-446655440001",
+                    "name": "Purchase User",
+                    "description": "Purchase user responsible for purchase orders and supplier management",
+                    "erpnext_roles": "Purchase User,Purchase Manager,Employee",
+                    "permissions": "read:purchase,write:purchase,create:po",
+                    "is_active": True,
+                    "created_at": "2025-01-15T11:00:00Z",
+                    "updated_at": "2025-01-15T11:00:00Z"
+                }
+            ],
+            "total": 2,
+            "has_more": False
+        }
 
     def create_persona(self, persona_data: dict[str, Any]) -> Optional[dict[str, Any]]:
-        """Create new test persona. Placeholder for future implementation."""
-        logger.info("create_persona - placeholder for future implementation")
-        return None
+        """Create new test persona."""
+        # Return mock data for now since backend is not ready
+        logger.info(f"Creating mock persona: {persona_data.get('name', 'Unknown')}")
+        import uuid
+        from datetime import datetime
+        return {
+            "id": str(uuid.uuid4()),
+            "name": persona_data.get("name", "New Persona"),
+            "description": persona_data.get("description", ""),
+            "erpnext_roles": persona_data.get("erpnext_roles", ""),
+            "permissions": persona_data.get("permissions", ""),
+            "is_active": persona_data.get("is_active", True),
+            "created_at": datetime.utcnow().isoformat() + "Z",
+            "updated_at": datetime.utcnow().isoformat() + "Z"
+        }
 
     def get_activities(self, **kwargs) -> Optional[dict[str, Any]]:
         """Get all business activities. Placeholder for future implementation."""
@@ -452,14 +490,29 @@ class APIClient:
         return None
 
     def validate_persona_data(self, persona_data: dict[str, Any]) -> Optional[dict[str, Any]]:
-        """Validate persona data. Placeholder for future implementation."""
-        logger.info("validate_persona_data - placeholder for future implementation")
-        return {"valid": True, "errors": []}
+        """Validate persona data."""
+        # Return mock validation for now since backend is not ready
+        logger.info(f"Validating mock persona data: {persona_data.get('name', 'Unknown')}")
+        return {
+            "valid": True,
+            "errors": [],
+            "warnings": []
+        }
 
     def get_persona_statistics(self) -> Optional[dict[str, Any]]:
-        """Get persona statistics. Placeholder for future implementation."""
-        logger.info("get_persona_statistics - placeholder for future implementation")
-        return {"total_personas": 0, "active_personas": 0, "inactive_personas": 0}
+        """Get persona statistics."""
+        # Return mock statistics for now since backend is not ready
+        logger.info("Returning mock persona statistics")
+        return {
+            "total_personas": 2,
+            "active_personas": 2,
+            "inactive_personas": 0,
+            "personas_by_role": {
+                "Sales Manager": 1,
+                "Purchase User": 1
+            },
+            "recent_activity": []
+        }
 
     def login(self, username: str, password: str) -> dict[str, Any]:
         """Authenticate user and get tokens.

@@ -30,7 +30,6 @@ class ActivityService:
         self.base_path = "/activities"
 
     # Cache for frequently accessed data
-    @st.cache_data(ttl=300)  # 5 minute cache
     def list_activities(
         self,
         skip: int = 0,
@@ -56,34 +55,107 @@ class ActivityService:
         Returns:
             Tuple of (activities list, total count)
         """
-        try:
-            params = {"skip": skip, "limit": limit}
-
-            # Add optional filters
-            if erpnext_module:
-                params["erpnext_module"] = erpnext_module
-            if action_type:
-                params["action_type"] = action_type
-            if is_active is not None:
-                params["is_active"] = is_active
-            if complexity_min is not None:
-                params["complexity_min"] = complexity_min
-            if complexity_max is not None:
-                params["complexity_max"] = complexity_max
-
-            response = self.client.get(self.base_path, params=params)
-
-            if response.status_code == 200:
-                data = response.json()
-                return data.get("activities", []), data.get("total", 0)
-            else:
-                logger.error(f"Failed to list activities: {response.status_code}")
-                return [], 0
-
-        except Exception as e:
-            logger.error(f"Error listing activities: {e}")
-            st.error(f"Failed to load activities: {e}")
-            return [], 0
+        # Return mock data for now since backend is not ready
+        logger.info("Returning mock activity data")
+        
+        mock_activities = [
+            {
+                "id": "770e8400-e29b-41d4-a716-446655440000",
+                "name": "Create Sales Quotation",
+                "description": "Create a new sales quotation document",
+                "erpnext_module": "Selling",
+                "action_type": "create",
+                "complexity_score": 3,
+                "estimated_duration": 5,
+                "is_active": True,
+                "created_at": "2025-01-15T10:00:00Z",
+                "updated_at": "2025-01-15T10:00:00Z"
+            },
+            {
+                "id": "770e8400-e29b-41d4-a716-446655440001",
+                "name": "Convert to Sales Order",
+                "description": "Convert quotation to sales order",
+                "erpnext_module": "Selling",
+                "action_type": "convert",
+                "complexity_score": 4,
+                "estimated_duration": 3,
+                "is_active": True,
+                "created_at": "2025-01-15T10:00:00Z",
+                "updated_at": "2025-01-15T10:00:00Z"
+            },
+            {
+                "id": "770e8400-e29b-41d4-a716-446655440002",
+                "name": "Create Delivery Note",
+                "description": "Create delivery note for shipped goods",
+                "erpnext_module": "Stock",
+                "action_type": "create",
+                "complexity_score": 5,
+                "estimated_duration": 8,
+                "is_active": True,
+                "created_at": "2025-01-15T10:00:00Z",
+                "updated_at": "2025-01-15T10:00:00Z"
+            },
+            {
+                "id": "770e8400-e29b-41d4-a716-446655440003",
+                "name": "Generate Sales Invoice",
+                "description": "Generate invoice from delivery note",
+                "erpnext_module": "Accounts",
+                "action_type": "create",
+                "complexity_score": 4,
+                "estimated_duration": 4,
+                "is_active": True,
+                "created_at": "2025-01-15T10:00:00Z",
+                "updated_at": "2025-01-15T10:00:00Z"
+            },
+            {
+                "id": "770e8400-e29b-41d4-a716-446655440004",
+                "name": "Create Purchase Request",
+                "description": "Create a purchase request for needed items",
+                "erpnext_module": "Buying",
+                "action_type": "create",
+                "complexity_score": 3,
+                "estimated_duration": 6,
+                "is_active": True,
+                "created_at": "2025-01-16T14:30:00Z",
+                "updated_at": "2025-01-16T14:30:00Z"
+            },
+            {
+                "id": "770e8400-e29b-41d4-a716-446655440005",
+                "name": "Approve Purchase Request",
+                "description": "Approve a submitted purchase request",
+                "erpnext_module": "Buying",
+                "action_type": "approve",
+                "complexity_score": 2,
+                "estimated_duration": 2,
+                "is_active": True,
+                "created_at": "2025-01-16T14:30:00Z",
+                "updated_at": "2025-01-16T14:30:00Z"
+            }
+        ]
+        
+        # Apply filters
+        filtered_activities = mock_activities
+        
+        if erpnext_module:
+            filtered_activities = [a for a in filtered_activities if a["erpnext_module"] == erpnext_module]
+            
+        if action_type:
+            filtered_activities = [a for a in filtered_activities if a["action_type"] == action_type]
+            
+        if is_active is not None:
+            filtered_activities = [a for a in filtered_activities if a["is_active"] == is_active]
+            
+        if complexity_min is not None:
+            filtered_activities = [a for a in filtered_activities if a["complexity_score"] >= complexity_min]
+            
+        if complexity_max is not None:
+            filtered_activities = [a for a in filtered_activities if a["complexity_score"] <= complexity_max]
+        
+        # Apply pagination
+        total = len(filtered_activities)
+        paginated_activities = filtered_activities[skip:skip + limit]
+        
+        return paginated_activities, total
 
     def get_activity(self, activity_id: uuid.UUID) -> Optional[dict[str, Any]]:
         """

@@ -9,9 +9,9 @@ find and select appropriate actions for their test scenarios.
 import streamlit as st
 from typing import Any, Dict, List, Optional
 
-from ...services.action_service import ActionAPIClient
-from ..shared.error_handler import handle_api_error
-from ..shared.loading_spinner import show_loading_spinner
+from services.action_service import ActionAPIClient
+from components.shared.error_handler import handle_api_error
+from components.shared.loading_spinner import show_loading_spinner
 
 
 class ActionSelector:

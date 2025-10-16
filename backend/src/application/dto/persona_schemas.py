@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .base_schemas import EntityDTO
 
@@ -55,7 +55,8 @@ class PersonaCreateRequest(BaseModel):
         default=True, description="Whether the persona is active and available for use"
     )
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_name(cls, v):
         """Validate persona name."""
         if not v or not v.strip():
@@ -71,7 +72,8 @@ class PersonaCreateRequest(BaseModel):
 
         return v.strip()
 
-    @validator("erpnext_roles")
+    @field_validator("erpnext_roles")
+    @classmethod
     def validate_erpnext_roles(cls, v):
         """Validate ERPNext roles format."""
         if not v or not v.strip():
@@ -83,7 +85,8 @@ class PersonaCreateRequest(BaseModel):
 
         return v.strip()
 
-    @validator("permissions")
+    @field_validator("permissions")
+    @classmethod
     def validate_permissions(cls, v):
         """Validate permissions format."""
         if not v:
@@ -144,16 +147,29 @@ class PersonaUpdateRequest(BaseModel):
 
     is_active: Optional[bool] = Field(None, description="Updated active status")
 
-    # Use same validators as create request
-    _validate_name = validator("name", allow_reuse=True)(
-        PersonaCreateRequest.validate_name
-    )
-    _validate_erpnext_roles = validator("erpnext_roles", allow_reuse=True)(
-        PersonaCreateRequest.validate_erpnext_roles
-    )
-    _validate_permissions = validator("permissions", allow_reuse=True)(
-        PersonaCreateRequest.validate_permissions
-    )
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v):
+        """Validate persona name."""
+        if v is None:
+            return v
+        return PersonaCreateRequest.validate_name(v)
+
+    @field_validator("erpnext_roles")
+    @classmethod
+    def validate_erpnext_roles(cls, v):
+        """Validate ERPNext roles format."""
+        if v is None:
+            return v
+        return PersonaCreateRequest.validate_erpnext_roles(v)
+
+    @field_validator("permissions")
+    @classmethod
+    def validate_permissions(cls, v):
+        """Validate permissions format."""
+        if v is None:
+            return v
+        return PersonaCreateRequest.validate_permissions(v)
 
 
 class PersonaResponse(EntityDTO):
@@ -178,29 +194,25 @@ class PersonaResponse(EntityDTO):
         alias="effective_permissions_count",
     )
 
-    @validator("erpnext_roles_list", pre=True, always=True)
-    def compute_roles_list(cls, v, values):
-        """Compute roles list from roles string."""
-        roles_str = values.get("erpnext_roles", "")
-        if not roles_str:
-            return []
-        return [role.strip() for role in roles_str.split(",") if role.strip()]
+    @model_validator(mode='after')
+    def compute_derived_fields(self):
+        """Compute derived fields after validation."""
+        # Compute roles list
+        if hasattr(self, 'erpnext_roles') and self.erpnext_roles:
+            self.erpnext_roles_list = [role.strip() for role in self.erpnext_roles.split(",") if role.strip()]
+        else:
+            self.erpnext_roles_list = []
 
-    @validator("permissions_list", pre=True, always=True)
-    def compute_permissions_list(cls, v, values):
-        """Compute permissions list from permissions string."""
-        perms_str = values.get("permissions", "")
-        if not perms_str:
-            return []
-        return [perm.strip() for perm in perms_str.split(",") if perm.strip()]
+        # Compute permissions list
+        if hasattr(self, 'permissions') and self.permissions:
+            self.permissions_list = [perm.strip() for perm in self.permissions.split(",") if perm.strip()]
+        else:
+            self.permissions_list = []
 
-    @validator("effective_permissions_count", pre=True, always=True)
-    def compute_effective_permissions_count(cls, v, values):
-        """Compute effective permissions count."""
-        # This would normally be computed by the domain entity
-        # For now, just return the count of explicit permissions
-        permissions_list = values.get("permissions_list", [])
-        return len(permissions_list)
+        # Compute effective permissions count
+        self.effective_permissions_count = len(self.permissions_list)
+
+        return self
 
 
 class PersonaListResponse(BaseModel):
@@ -229,7 +241,8 @@ class PersonaSummaryResponse(BaseModel):
     is_active: bool = Field(..., description="Whether persona is active")
     created_at: datetime = Field(..., description="Creation timestamp")
 
-    @validator("description")
+    @field_validator("description")
+    @classmethod
     def truncate_description(cls, v):
         """Truncate description for summary."""
         if len(v) > 200:
@@ -279,7 +292,8 @@ class PersonaSuggestionRequest(BaseModel):
         examples=[["experienced", "senior"], ["new", "trainee"]],
     )
 
-    @validator("module")
+    @field_validator("module")
+    @classmethod
     def validate_module(cls, v):
         """Validate ERPNext module name."""
         valid_modules = {
@@ -306,7 +320,8 @@ class PersonaSuggestionRequest(BaseModel):
 
         return v.lower()
 
-    @validator("user_level")
+    @field_validator("user_level")
+    @classmethod
     def validate_user_level(cls, v):
         """Validate user level."""
         valid_levels = {"user", "manager", "admin"}
@@ -358,7 +373,8 @@ class PersonaSearchRequest(BaseModel):
         default="desc", description="Sort order", examples=["asc", "desc"]
     )
 
-    @validator("sort_by")
+    @field_validator("sort_by")
+    @classmethod
     def validate_sort_by(cls, v):
         """Validate sort field."""
         valid_fields = {"name", "created_at", "updated_at", "is_active"}
@@ -370,7 +386,8 @@ class PersonaSearchRequest(BaseModel):
 
         return v
 
-    @validator("sort_order")
+    @field_validator("sort_order")
+    @classmethod
     def validate_sort_order(cls, v):
         """Validate sort order."""
         valid_orders = {"asc", "desc"}

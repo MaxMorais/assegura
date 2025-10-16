@@ -9,7 +9,7 @@ for building comprehensive test scenarios.
 import streamlit as st
 from typing import Any, Dict, List, Optional
 
-from ..shared.error_handler import handle_api_error
+from components.shared.error_handler import handle_api_error
 
 
 class StepSequence:
