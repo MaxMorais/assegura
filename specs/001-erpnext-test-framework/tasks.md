@@ -113,7 +113,7 @@
 
 ### API Layer
 - [x] T052 [US2] Implement activity REST endpoints in backend/src/api/activities/activity_routes.py
-- [ ] T053 [P] [US2] Implement nested persona-activities endpoints in backend/src/api/personas/persona_activity_routes.py
+- [x] T053 [P] [US2] Implement nested persona-activities endpoints in backend/src/api/personas/persona_activity_routes.py
 
 ### UI Layer  
 - [x] T054 [US2] Create activity form components in frontend/src/components/activity_forms/activity_form.py
@@ -160,8 +160,8 @@
 - [ ] T077 [P] [US3] Create action library database migration in backend/migrations/versions/004_create_actions_table.py
 
 ### API Layer  
-- [x] T078 [US3] Implement journey REST endpoints in backend/src/api/journeys/journey_routes.py
-- [x] T079 [P] [US3] Implement action library REST endpoints in backend/src/api/actions/action_routes.py
+- [ ] T078 [US3] Implement journey REST endpoints in backend/src/api/journeys/journey_routes.py
+- [ ] T079 [P] [US3] Implement action library REST endpoints in backend/src/api/actions/action_routes.py
 - [ ] T080 [P] [US3] Implement nested activity-journeys endpoints in backend/src/api/activities/activity_journey_routes.py
 
 ### UI Layer
