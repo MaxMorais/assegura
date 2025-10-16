@@ -26,7 +26,7 @@
 - [x] T004 [P] Configure linting and formatting tools (ruff, black) for both backend and frontend
 - [x] T005 [P] Set up PostgreSQL connection configuration in backend/src/infrastructure/database/config.py
 - [x] T006 [P] Configure Docker containerization per research.md decisions in docker-compose.yml
-- [ ] T007 Create base domain entity class with common fields in backend/src/domain/base_entity.py
+- [x] T007 Create base domain entity class with common fields in backend/src/domain/base_entity.py
 - [ ] T008 [P] Create Pydantic base schemas for API validation in backend/src/application/dto/base_schemas.py
 - [ ] T009 [P] Create FastAPI application bootstrap in backend/src/api/main.py
 - [ ] T010 [P] Create Streamlit application bootstrap in frontend/src/main.py
