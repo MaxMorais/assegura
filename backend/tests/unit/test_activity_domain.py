@@ -245,7 +245,7 @@ class TestActivityEntity:
         assert activity.validation_rules == validation_rules
         assert (
             activity.validation_rules_json
-            == '{"customer": {"required": true, "type": "string"}, "amount": {"required": true, "type": "number", "min": 0}}'
+            == '{"amount": {"min": 0, "required": true, "type": "number"}, "customer": {"required": true, "type": "string"}}'
         )
 
     def test_test_data_requirements_property(self, valid_activity_data: dict[str, Any]):

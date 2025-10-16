@@ -323,27 +323,27 @@ class Activity:
     @property
     def required_fields_str(self) -> str:
         """Get required fields as comma-separated string."""
-        return ",".join(self.required_fields)
+        return ", ".join(self.required_fields)
 
     @property
     def success_criteria_str(self) -> str:
         """Get success criteria as comma-separated string."""
-        return ",".join(self.success_criteria)
+        return ", ".join(self.success_criteria)
 
     @property
     def prerequisites_str(self) -> str:
         """Get prerequisites as comma-separated string."""
-        return ",".join(self.prerequisites)
+        return ", ".join(self.prerequisites)
 
     @property
     def postconditions_str(self) -> str:
         """Get postconditions as comma-separated string."""
-        return ",".join(self.postconditions)
+        return ", ".join(self.postconditions)
 
     @property
     def tags_str(self) -> str:
         """Get tags as comma-separated string."""
-        return ",".join(self.tags)
+        return ", ".join(self.tags)
 
     @property
     def validation_rules_json(self) -> str:
@@ -577,10 +577,16 @@ class Activity:
         total_score = sum(score * weight for score, weight in similarity_factors)
         return min(1.0, max(0.0, total_score))
 
+    def update(self) -> None:
+        """Update the activity and refresh metadata."""
+        # Re-validate the activity with current data
+        self._validate()
+        # Update metadata
+        self._update_metadata()
+
     def _update_metadata(self) -> None:
-        """Update metadata timestamps and version."""
+        """Update metadata timestamps."""
         self.updated_at = datetime.utcnow()
-        self.version += 1
 
     def __str__(self) -> str:
         """String representation of the activity."""
