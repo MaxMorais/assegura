@@ -178,3 +178,6 @@ output.xml
 report.html
 log.html
 robot_results/
+
+# Playwright MCP artifacts
+.playwright-mcp/
