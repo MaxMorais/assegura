@@ -155,7 +155,7 @@
 - [x] T072 [US3] Implement JourneyRepository with SQLAlchemy in backend/src/infrastructure/database/repositories/journey_repository.py
 - [x] T073 [P] [US3] Implement ActionLibraryRepository in backend/src/infrastructure/database/repositories/action_repository.py
 - [x] T074 [P] [US3] Create journey database models in backend/src/infrastructure/database/models/journey_models.py
-- [ ] T075 [P] [US3] Create action library database models in backend/src/infrastructure/database/models/action_model.py
+- [x] T075 [P] [US3] Create action library database models in backend/src/infrastructure/database/models/action_library_models.py
 - [ ] T076 [P] [US3] Create journey database migration in backend/migrations/versions/003_create_journeys_table.py
 - [ ] T077 [P] [US3] Create action library database migration in backend/migrations/versions/004_create_actions_table.py
 
