@@ -2,7 +2,7 @@
 streamlit
 
 # HTTP Client for API Communication  
-requests==2.31.0
+requests==2.32.4
 httpx==0.25.2
 
 # Data Manipulation and Display
