@@ -22,6 +22,8 @@ except ImportError as e:
     print(f"FastAPI dependencies not installed: {e}")
     print("Run 'pip install -r requirements.txt' in backend directory")
 
+from sqlalchemy import text
+
 from ..application.dto import ErrorResponse, HealthResponse, ValidationErrorResponse
 from ..infrastructure.database import db_manager
 
@@ -249,7 +251,7 @@ def _configure_routes(app: "FastAPI") -> None:
         database_status = "connected"
         try:
             with db_manager.get_sync_session() as session:
-                session.execute("SELECT 1")
+                session.execute(text("SELECT 1"))
         except Exception as e:
             database_status = f"error: {str(e)}"
             logger.error(f"Database health check failed: {e}")

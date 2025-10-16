@@ -70,8 +70,8 @@ class DatabaseManager:
         )
 
         logger.info(
-            f"Initialized database connections to {database_config.db_host}:"
-            f"{database_config.db_port}/{database_config.db_name}"
+            f"Initialized database connections to {database_config.host}:"
+            f"{database_config.port}/{database_config.name}"
         )
 
     @property

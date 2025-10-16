@@ -20,11 +20,11 @@ class DatabaseConfig(BaseSettings):
     """
 
     # Database Connection
-    db_host: str = Field(default="localhost", description="PostgreSQL host")
-    db_port: int = Field(default=5432, description="PostgreSQL port")
-    db_name: str = Field(default="erpnext_test_automation", description="Database name")
-    db_user: str = Field(description="Database username")
-    db_password: str = Field(description="Database password")
+    host: str = Field(default="localhost", description="PostgreSQL host")
+    port: int = Field(default=5432, description="PostgreSQL port")
+    name: str = Field(default="erpnext_test_automation", description="Database name")
+    user: str = Field(description="Database username")
+    password: str = Field(description="Database password")
 
     # Connection Pool Settings
     pool_size: int = Field(default=10, description="Connection pool size")
@@ -39,12 +39,12 @@ class DatabaseConfig(BaseSettings):
     )
 
     # SSL Configuration
-    db_ssl_mode: str = Field(
+    ssl_mode: str = Field(
         default="prefer", description="SSL mode (disable/allow/prefer/require)"
     )
-    db_ssl_cert: Optional[str] = Field(default=None, description="SSL certificate path")
-    db_ssl_key: Optional[str] = Field(default=None, description="SSL key path")
-    db_ssl_ca: Optional[str] = Field(
+    ssl_cert: Optional[str] = Field(default=None, description="SSL certificate path")
+    ssl_key: Optional[str] = Field(default=None, description="SSL key path")
+    ssl_ca: Optional[str] = Field(
         default=None, description="SSL CA certificate path"
     )
 
@@ -58,7 +58,7 @@ class DatabaseConfig(BaseSettings):
         env_prefix = "DB_"
         case_sensitive = False
 
-    @validator("db_port")
+    @validator("port")
     def validate_port(cls, v: int) -> int:
         """Validate database port range."""
         if not 1 <= v <= 65535:
@@ -72,7 +72,7 @@ class DatabaseConfig(BaseSettings):
             raise ValueError("Pool size must be at least 1")
         return v
 
-    @validator("db_ssl_mode")
+    @validator("ssl_mode")
     def validate_ssl_mode(cls, v: str) -> str:
         """Validate SSL mode."""
         valid_modes = {
@@ -96,14 +96,14 @@ class DatabaseConfig(BaseSettings):
         Returns:
             PostgreSQL connection URL
         """
-        password_part = f":{self.db_password}" if include_password else ""
+        password_part = f":{self.password}" if include_password else ""
         ssl_part = (
-            f"?sslmode={self.db_ssl_mode}" if self.db_ssl_mode != "disable" else ""
+            f"?sslmode={self.ssl_mode}" if self.ssl_mode != "disable" else ""
         )
 
         return (
-            f"postgresql://{self.db_user}{password_part}@"
-            f"{self.db_host}:{self.db_port}/{self.db_name}{ssl_part}"
+            f"postgresql://{self.user}{password_part}@"
+            f"{self.host}:{self.port}/{self.name}{ssl_part}"
         )
 
     def get_async_database_url(self, include_password: bool = True) -> str:
@@ -125,7 +125,7 @@ class TestDatabaseConfig(DatabaseConfig):
     Inherits from main config but uses test-specific defaults.
     """
 
-    db_name: str = Field(
+    name: str = Field(
         default="erpnext_test_automation_test", description="Test database name"
     )
     echo_sql: bool = Field(default=True, description="Echo SQL for test debugging")
