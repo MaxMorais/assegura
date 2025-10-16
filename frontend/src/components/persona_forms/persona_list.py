@@ -13,7 +13,7 @@ import streamlit as st
 from streamlit import session_state as ss
 from streamlit.delta_generator import DeltaGenerator
 
-from ...services.api_client import APIClient
+from services.api_client import APIClient
 
 logger = logging.getLogger(__name__)
 

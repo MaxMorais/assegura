@@ -108,6 +108,8 @@ def _configure_middleware(app: "FastAPI") -> None:
         CORSMiddleware,
         allow_origins=[
             "http://localhost:8501",  # Streamlit frontend
+            "http://frontend:8501",  # Docker service name
+            "http://erpnext-test-frontend:8501",  # Docker container name
             "http://localhost:3000",  # Development frontend
             "https://test.assegura.com",  # Production frontend
         ],
@@ -121,7 +123,9 @@ def _configure_middleware(app: "FastAPI") -> None:
         TrustedHostMiddleware,
         allowed_hosts=[
             "localhost",
-            "127.0.0.1",
+            "127.0.0.1", 
+            "backend",  # Docker service name
+            "erpnext-test-backend",  # Docker container name
             "*.assegura.com",
             "*.herokuapp.com",  # For deployment
         ],

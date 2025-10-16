@@ -15,14 +15,14 @@ except ImportError as e:
     print(f"Streamlit dependencies not installed: {e}")
     print("Run 'pip install -r requirements.txt' in frontend directory")
 
-from .components.header import render_header
-from .components.sidebar import render_sidebar
-from .pages.activities import show_activities
-from .pages.dashboard import show_dashboard
-from .pages.journeys import show_journeys
-from .pages.personas import show_personas
-from .pages.test_generation import show_test_generation
-from .services.api_client import APIClient
+from components.header import render_header
+from components.sidebar import render_sidebar
+from pages.activities import show_activities
+from pages.dashboard import show_dashboard
+from pages.journeys import show_journeys
+from pages.personas import show_personas
+from pages.test_generation import show_test_generation
+from services.api_client import APIClient, api_client
 
 # Configure logging
 logging.basicConfig(
@@ -93,7 +93,6 @@ def check_api_connection() -> bool:
         True if API is accessible, False otherwise
     """
     try:
-        api_client = APIClient()
         health_data = api_client.get_health()
 
         if health_data and health_data.get("status") == "healthy":

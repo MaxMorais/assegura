@@ -120,7 +120,7 @@ services:
       - backend
     networks:
       - erpnext_test_network
-    command: streamlit run src/main.py --server.address 0.0.0.0 --server.port 8501
+    command: bash -c "cd /app/src && python -m streamlit run main.py --server.address 0.0.0.0 --server.port 8501"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
       interval: 30s

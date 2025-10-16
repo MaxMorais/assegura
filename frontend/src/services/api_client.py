@@ -6,6 +6,7 @@ error handling, and retry logic for the ERPNext Test Automation Meta-Framework.
 
 import json
 import logging
+import os
 from typing import Any, Optional
 from urllib.parse import urljoin
 
@@ -87,7 +88,7 @@ class APIClient:
         retry_strategy = Retry(
             total=max_retries,
             status_forcelist=[429, 500, 502, 503, 504],
-            method_whitelist=["HEAD", "GET", "OPTIONS"],
+            allowed_methods=["HEAD", "GET", "OPTIONS"],
             backoff_factor=backoff_factor,
         )
 
@@ -555,7 +556,7 @@ class APIClient:
 
 
 # Global API client instance
-api_client = APIClient()
+api_client = APIClient(base_url=os.getenv("API_BASE_URL", "http://localhost:8000"))
 
 
 # Convenience functions for common operations

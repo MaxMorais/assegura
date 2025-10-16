@@ -10,9 +10,9 @@ from typing import Any, Optional
 import streamlit as st
 from streamlit import session_state as ss
 
-from ..components.persona_forms.persona_form import PersonaFormComponent
-from ..components.persona_forms.persona_list import PersonaListComponent
-from ..services.api_client import APIClient
+from components.persona_forms.persona_form import PersonaFormComponent
+from components.persona_forms.persona_list import PersonaListComponent
+from services.api_client import APIClient, api_client
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ def render_personas_page():
     )
 
     # Initialize components
-    api_client = APIClient()
+    # Use global api_client from services module (already configured with environment)
     page_state = PersonaPageState()
 
     # Page title and navigation

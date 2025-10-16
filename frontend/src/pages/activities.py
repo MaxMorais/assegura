@@ -14,11 +14,11 @@ src_path = Path(__file__).parent.parent
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-try:
-    from components.activity_forms import render_activity_list
-    from services.api_client import APIClient
-except ImportError:
-    st.error("Missing dependencies - please install requirements")
+#try:
+from components.activity_forms import render_activity_list
+from services.api_client import APIClient
+#except ImportError:
+#    st.error("Missing dependencies - please install requirements")
 
 
 def show_activities() -> None:
