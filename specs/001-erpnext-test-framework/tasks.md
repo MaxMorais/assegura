@@ -152,7 +152,7 @@
 - [x] T071 [P] [US3] Implement ActionLibraryService in backend/src/application/services/action_service.py
 
 ### Infrastructure Layer
-- [ ] T072 [US3] Implement JourneyRepository with SQLAlchemy in backend/src/infrastructure/database/repositories/journey_repository.py
+- [x] T072 [US3] Implement JourneyRepository with SQLAlchemy in backend/src/infrastructure/database/repositories/journey_repository.py
 - [ ] T073 [P] [US3] Implement ActionLibraryRepository in backend/src/infrastructure/database/repositories/action_repository.py
 - [ ] T074 [P] [US3] Create journey database models in backend/src/infrastructure/database/models/journey_model.py
 - [ ] T075 [P] [US3] Create action library database models in backend/src/infrastructure/database/models/action_model.py
