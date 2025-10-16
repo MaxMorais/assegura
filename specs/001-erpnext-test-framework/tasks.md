@@ -147,7 +147,7 @@
 
 ### Application Layer
 - [x] T068 [US3] Create Journey DTO schemas for API requests/responses in backend/src/application/dto/journey_schemas.py
-- [ ] T069 [US3] Create Action Library DTO schemas in backend/src/application/dto/action_schemas.py  
+- [x] T069 [US3] Create Action Library DTO schemas in backend/src/application/dto/action_schemas.py  
 - [ ] T070 [US3] Implement JourneyService for use cases in backend/src/application/services/journey_service.py
 - [ ] T071 [P] [US3] Implement ActionLibraryService in backend/src/application/services/action_service.py
 
