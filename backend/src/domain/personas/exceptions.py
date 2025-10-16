@@ -198,6 +198,11 @@ class PersonaMultipleValidationError(PersonaDomainError):
         """
         return any(error.field == field for error in self.errors)
 
+    def __str__(self) -> str:
+        """String representation including actual error messages."""
+        error_messages = [error.message for error in self.errors]
+        return f"Multiple validation errors: {'; '.join(error_messages)}"
+
 
 def create_validation_error(
     message: str, field: Optional[str] = None, value: Optional[Any] = None

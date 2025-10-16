@@ -262,10 +262,10 @@ class TestPersonaDomainService:
         """Test successful persona update validation."""
         service = PersonaDomainService()
 
-        original_persona = Persona(name="Original Name", description="Original persona", erpnext_roles=["Sales User"])
+        original_persona = Persona(name="Original Name", description="Original persona with detailed description for testing", erpnext_roles=["Sales User"])
 
         updated_persona = Persona(
-            name="Updated Name", description="Updated persona", erpnext_roles=["Sales User", "Sales Manager"]
+            name="Updated Name", description="Updated persona with modified description for testing validation", erpnext_roles=["Sales User", "Sales Manager"]
         )
         updated_persona.id = original_persona.id  # Same ID
 
