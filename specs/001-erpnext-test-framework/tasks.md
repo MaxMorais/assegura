@@ -161,7 +161,7 @@
 
 ### API Layer  
 - [x] T078 [US3] Implement journey REST endpoints in backend/src/api/journeys/journey_routes.py
-- [ ] T079 [P] [US3] Implement action library REST endpoints in backend/src/api/actions/action_routes.py
+- [x] T079 [P] [US3] Implement action library REST endpoints in backend/src/api/actions/action_routes.py
 - [ ] T080 [P] [US3] Implement nested activity-journeys endpoints in backend/src/api/activities/activity_journey_routes.py
 
 ### UI Layer
