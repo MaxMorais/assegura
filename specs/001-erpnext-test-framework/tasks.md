@@ -160,16 +160,16 @@
 - [x] T077 [P] [US3] Create action library database migration in backend/migrations/versions/004_create_actions_table.py
 
 ### API Layer  
-- [ ] T078 [US3] Implement journey REST endpoints in backend/src/api/journeys/journey_routes.py
-- [ ] T079 [P] [US3] Implement action library REST endpoints in backend/src/api/actions/action_routes.py
-- [ ] T080 [P] [US3] Implement nested activity-journeys endpoints in backend/src/api/activities/activity_journey_routes.py
+- [x] T078 [US3] Implement journey REST endpoints in backend/src/api/journeys/journey_routes.py
+- [x] T079 [P] [US3] Implement action library REST endpoints in backend/src/api/actions/action_routes.py
+- [x] T080 [P] [US3] Implement nested activity-journeys endpoints in backend/src/api/activities/activity_journey_routes.py
 
 ### UI Layer
-- [ ] T081 [US3] Create journey builder component in frontend/src/components/journey_builder/journey_builder.py
-- [ ] T082 [P] [US3] Create action selector component in frontend/src/components/journey_builder/action_selector.py
-- [ ] T083 [P] [US3] Create step sequencing component in frontend/src/components/journey_builder/step_sequence.py
-- [ ] T084 [US3] Implement journeys page with builder interface in frontend/src/pages/journeys.py
-- [ ] T085 [P] [US3] Create journey API client service in frontend/src/services/journey_service.py
+- [x] T081 [US3] Create journey builder component in frontend/src/components/journey_builder/journey_builder.py
+- [x] T082 [P] [US3] Create action selector component in frontend/src/components/journey_builder/action_selector.py
+- [x] T083 [P] [US3] Create step sequencing component in frontend/src/components/journey_builder/step_sequence.py
+- [x] T084 [US3] Implement journeys page with builder interface in frontend/src/pages/journeys.py
+- [x] T085 [P] [US3] Create journey API client service in frontend/src/services/journey_service.py
 
 ### Integration Tests  
 - [ ] T086 [US3] Create integration tests for journey API endpoints in backend/tests/integration/test_journey_api.py
