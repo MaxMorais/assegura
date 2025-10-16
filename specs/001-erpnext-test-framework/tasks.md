@@ -152,12 +152,12 @@
 - [x] T071 [P] [US3] Implement ActionLibraryService in backend/src/application/services/action_service.py
 
 ### Infrastructure Layer
-- [ ] T072 [US3] Implement JourneyRepository with SQLAlchemy in backend/src/infrastructure/database/repositories/journey_repository.py
-- [ ] T073 [P] [US3] Implement ActionLibraryRepository in backend/src/infrastructure/database/repositories/action_repository.py
-- [ ] T074 [P] [US3] Create journey database models in backend/src/infrastructure/database/models/journey_model.py
-- [ ] T075 [P] [US3] Create action library database models in backend/src/infrastructure/database/models/action_model.py
-- [ ] T076 [P] [US3] Create journey database migration in backend/migrations/versions/003_create_journeys_table.py
-- [ ] T077 [P] [US3] Create action library database migration in backend/migrations/versions/004_create_actions_table.py
+- [x] T072 [US3] Implement JourneyRepository with SQLAlchemy in backend/src/infrastructure/database/repositories/journey_repository.py
+- [x] T073 [P] [US3] Implement ActionLibraryRepository in backend/src/infrastructure/database/repositories/action_repository.py
+- [x] T074 [P] [US3] Create journey database models in backend/src/infrastructure/database/models/journey_model.py
+- [x] T075 [P] [US3] Create action library database models in backend/src/infrastructure/database/models/action_model.py
+- [x] T076 [P] [US3] Create journey database migration in backend/migrations/versions/003_create_journeys_table.py
+- [x] T077 [P] [US3] Create action library database migration in backend/migrations/versions/004_create_actions_table.py
 
 ### API Layer  
 - [ ] T078 [US3] Implement journey REST endpoints in backend/src/api/journeys/journey_routes.py
