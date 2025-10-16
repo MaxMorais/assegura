@@ -5,34 +5,35 @@ including CRUD operations, filtering, and activity-persona relationships.
 """
 
 import uuid
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from typing import Any, Optional
 
-from ...infrastructure.database.config import get_db
-from ...infrastructure.database.repositories.activity_repository import (
-    SQLAlchemyActivityRepository,
-    SQLAlchemyActivityPersonaLinkRepository
-)
-from ...application.services.activity_service import ActivityApplicationService
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
 from ...application.dto.activity_schemas import (
+    ActivityBulkOperationRequest,
     ActivityCreateRequest,
-    ActivityUpdateRequest,
-    ActivityResponse,
-    ActivityListResponse,
     ActivityFilterRequest,
+    ActivityListResponse,
     ActivityPersonaLinkCreateRequest,
     ActivityPersonaLinkResponse,
-    ActivityBulkOperationRequest,
-    ActivitySearchRequest
+    ActivityResponse,
+    ActivitySearchRequest,
+    ActivityUpdateRequest,
 )
+from ...application.services.activity_service import ActivityApplicationService
 from ...domain.activities.exceptions import (
-    ActivityNotFoundError,
     ActivityAlreadyExistsError,
-    ActivityPersonaLinkNotFoundError,
+    ActivityNotFoundError,
     ActivityPersonaLinkAlreadyExistsError,
-    ActivityValidationError
+    ActivityPersonaLinkNotFoundError,
+    ActivityValidationError,
+)
+from ...infrastructure.database.config import get_db
+from ...infrastructure.database.repositories.activity_repository import (
+    SQLAlchemyActivityPersonaLinkRepository,
+    SQLAlchemyActivityRepository,
 )
 
 # Create router
@@ -51,11 +52,11 @@ def get_activity_service(db: Session = Depends(get_db)) -> ActivityApplicationSe
     response_model=ActivityResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create new activity",
-    description="Create a new ERPNext business activity with validation and metadata"
+    description="Create a new ERPNext business activity with validation and metadata",
 )
 async def create_activity(
     request: ActivityCreateRequest,
-    service: ActivityApplicationService = Depends(get_activity_service)
+    service: ActivityApplicationService = Depends(get_activity_service),
 ) -> ActivityResponse:
     """Create a new activity."""
     try:
@@ -64,17 +65,17 @@ async def create_activity(
     except ActivityAlreadyExistsError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Activity already exists: {str(e)}"
+            detail=f"Activity already exists: {str(e)}",
         )
     except ActivityValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Validation error: {str(e)}"
+            detail=f"Validation error: {str(e)}",
         )
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
@@ -82,11 +83,11 @@ async def create_activity(
     "/{activity_id}",
     response_model=ActivityResponse,
     summary="Get activity by ID",
-    description="Retrieve a specific activity by its unique identifier"
+    description="Retrieve a specific activity by its unique identifier",
 )
 async def get_activity(
     activity_id: uuid.UUID,
-    service: ActivityApplicationService = Depends(get_activity_service)
+    service: ActivityApplicationService = Depends(get_activity_service),
 ) -> ActivityResponse:
     """Get an activity by ID."""
     try:
@@ -94,18 +95,18 @@ async def get_activity(
         if not activity:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Activity with ID {activity_id} not found"
+                detail=f"Activity with ID {activity_id} not found",
             )
         return activity
     except ActivityNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Activity with ID {activity_id} not found"
+            detail=f"Activity with ID {activity_id} not found",
         )
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
@@ -113,7 +114,7 @@ async def get_activity(
     "/",
     response_model=ActivityListResponse,
     summary="List activities with filtering",
-    description="Retrieve activities with optional filtering, search, and pagination"
+    description="Retrieve activities with optional filtering, search, and pagination",
 )
 async def list_activities(
     page: int = Query(1, ge=1, description="Page number"),
@@ -121,13 +122,19 @@ async def list_activities(
     erpnext_module: Optional[str] = Query(None, description="Filter by ERPNext module"),
     action_type: Optional[str] = Query(None, description="Filter by action type"),
     target_doctype: Optional[str] = Query(None, description="Filter by target DocType"),
-    complexity_score: Optional[int] = Query(None, ge=1, le=5, description="Filter by complexity score"),
+    complexity_score: Optional[int] = Query(
+        None, ge=1, le=5, description="Filter by complexity score"
+    ),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
     search: Optional[str] = Query(None, description="Search in name and description"),
     tags: Optional[str] = Query(None, description="Filter by tags (comma-separated)"),
-    min_duration: Optional[int] = Query(None, ge=0, description="Minimum estimated duration"),
-    max_duration: Optional[int] = Query(None, ge=0, description="Maximum estimated duration"),
-    service: ActivityApplicationService = Depends(get_activity_service)
+    min_duration: Optional[int] = Query(
+        None, ge=0, description="Minimum estimated duration"
+    ),
+    max_duration: Optional[int] = Query(
+        None, ge=0, description="Maximum estimated duration"
+    ),
+    service: ActivityApplicationService = Depends(get_activity_service),
 ) -> ActivityListResponse:
     """List activities with filtering and pagination."""
     try:
@@ -139,17 +146,17 @@ async def list_activities(
             complexity_score=complexity_score,
             is_active=is_active,
             search=search,
-            tags_any=[tag.strip() for tag in tags.split(',')] if tags else None,
+            tags_any=[tag.strip() for tag in tags.split(",")] if tags else None,
             min_duration=min_duration,
-            max_duration=max_duration
+            max_duration=max_duration,
         )
-        
+
         result = await service.list_activities(filters, page, per_page)
         return result
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
@@ -157,12 +164,12 @@ async def list_activities(
     "/{activity_id}",
     response_model=ActivityResponse,
     summary="Update activity",
-    description="Update an existing activity with new data and validation"
+    description="Update an existing activity with new data and validation",
 )
 async def update_activity(
     activity_id: uuid.UUID,
     request: ActivityUpdateRequest,
-    service: ActivityApplicationService = Depends(get_activity_service)
+    service: ActivityApplicationService = Depends(get_activity_service),
 ) -> ActivityResponse:
     """Update an activity."""
     try:
@@ -171,17 +178,17 @@ async def update_activity(
     except ActivityNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Activity with ID {activity_id} not found"
+            detail=f"Activity with ID {activity_id} not found",
         )
     except ActivityValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Validation error: {str(e)}"
+            detail=f"Validation error: {str(e)}",
         )
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
@@ -189,11 +196,11 @@ async def update_activity(
     "/{activity_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete activity",
-    description="Delete an activity and all its relationships"
+    description="Delete an activity and all its relationships",
 )
 async def delete_activity(
     activity_id: uuid.UUID,
-    service: ActivityApplicationService = Depends(get_activity_service)
+    service: ActivityApplicationService = Depends(get_activity_service),
 ) -> None:
     """Delete an activity."""
     try:
@@ -201,12 +208,12 @@ async def delete_activity(
     except ActivityNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Activity with ID {activity_id} not found"
+            detail=f"Activity with ID {activity_id} not found",
         )
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
@@ -214,11 +221,11 @@ async def delete_activity(
     "/search",
     response_model=ActivityListResponse,
     summary="Search activities",
-    description="Advanced search for activities with multiple criteria"
+    description="Advanced search for activities with multiple criteria",
 )
 async def search_activities(
     request: ActivitySearchRequest,
-    service: ActivityApplicationService = Depends(get_activity_service)
+    service: ActivityApplicationService = Depends(get_activity_service),
 ) -> ActivityListResponse:
     """Search activities with advanced criteria."""
     try:
@@ -227,20 +234,20 @@ async def search_activities(
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
 @router.get(
     "/modules/{module_name}",
-    response_model=List[ActivityResponse],
+    response_model=list[ActivityResponse],
     summary="Get activities by module",
-    description="Retrieve all activities for a specific ERPNext module"
+    description="Retrieve all activities for a specific ERPNext module",
 )
 async def get_activities_by_module(
     module_name: str,
-    service: ActivityApplicationService = Depends(get_activity_service)
-) -> List[ActivityResponse]:
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> list[ActivityResponse]:
     """Get activities by ERPNext module."""
     try:
         activities = await service.get_activities_by_module(module_name)
@@ -248,20 +255,20 @@ async def get_activities_by_module(
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
 @router.get(
     "/doctypes/{doctype_name}",
-    response_model=List[ActivityResponse],
+    response_model=list[ActivityResponse],
     summary="Get activities by DocType",
-    description="Retrieve all activities targeting a specific DocType"
+    description="Retrieve all activities targeting a specific DocType",
 )
 async def get_activities_by_doctype(
     doctype_name: str,
-    service: ActivityApplicationService = Depends(get_activity_service)
-) -> List[ActivityResponse]:
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> list[ActivityResponse]:
     """Get activities by target DocType."""
     try:
         activities = await service.get_activities_by_doctype(doctype_name)
@@ -269,19 +276,19 @@ async def get_activities_by_doctype(
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
 @router.get(
     "/statistics",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     summary="Get activity statistics",
-    description="Retrieve comprehensive statistics about activities"
+    description="Retrieve comprehensive statistics about activities",
 )
 async def get_activity_statistics(
-    service: ActivityApplicationService = Depends(get_activity_service)
-) -> Dict[str, Any]:
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> dict[str, Any]:
     """Get activity statistics."""
     try:
         stats = await service.get_activity_statistics()
@@ -289,44 +296,43 @@ async def get_activity_statistics(
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
 @router.post(
     "/bulk/update-status",
-    response_model=Dict[str, int],
+    response_model=dict[str, int],
     summary="Bulk update activity status",
-    description="Update the active/inactive status of multiple activities"
+    description="Update the active/inactive status of multiple activities",
 )
 async def bulk_update_activity_status(
     request: ActivityBulkOperationRequest,
-    service: ActivityApplicationService = Depends(get_activity_service)
-) -> Dict[str, int]:
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> dict[str, int]:
     """Bulk update activity status."""
     try:
         count = await service.bulk_update_activity_status(
-            request.activity_ids,
-            request.is_active
+            request.activity_ids, request.is_active
         )
         return {"updated_count": count}
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
 @router.delete(
     "/bulk",
-    response_model=Dict[str, int],
+    response_model=dict[str, int],
     summary="Bulk delete activities",
-    description="Delete multiple activities at once"
+    description="Delete multiple activities at once",
 )
 async def bulk_delete_activities(
-    activity_ids: List[uuid.UUID],
-    service: ActivityApplicationService = Depends(get_activity_service)
-) -> Dict[str, int]:
+    activity_ids: list[uuid.UUID],
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> dict[str, int]:
     """Bulk delete activities."""
     try:
         count = await service.bulk_delete_activities(activity_ids)
@@ -334,7 +340,7 @@ async def bulk_delete_activities(
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
@@ -344,12 +350,12 @@ async def bulk_delete_activities(
     response_model=ActivityPersonaLinkResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Link activity to persona",
-    description="Create a relationship between an activity and a persona"
+    description="Create a relationship between an activity and a persona",
 )
 async def link_activity_to_persona(
     activity_id: uuid.UUID,
     request: ActivityPersonaLinkCreateRequest,
-    service: ActivityApplicationService = Depends(get_activity_service)
+    service: ActivityApplicationService = Depends(get_activity_service),
 ) -> ActivityPersonaLinkResponse:
     """Link an activity to a persona."""
     try:
@@ -360,32 +366,32 @@ async def link_activity_to_persona(
     except ActivityPersonaLinkAlreadyExistsError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Activity {activity_id} is already linked to persona {request.persona_id}"
+            detail=f"Activity {activity_id} is already linked to persona {request.persona_id}",
         )
     except ActivityNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Activity with ID {activity_id} not found"
+            detail=f"Activity with ID {activity_id} not found",
         )
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
 @router.get(
     "/{activity_id}/personas",
-    response_model=List[ActivityPersonaLinkResponse],
+    response_model=list[ActivityPersonaLinkResponse],
     summary="Get activity personas",
-    description="Retrieve all personas linked to an activity"
+    description="Retrieve all personas linked to an activity",
 )
 async def get_activity_personas(
     activity_id: uuid.UUID,
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
-    service: ActivityApplicationService = Depends(get_activity_service)
-) -> List[ActivityPersonaLinkResponse]:
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> list[ActivityPersonaLinkResponse]:
     """Get personas linked to an activity."""
     try:
         links = await service.get_activity_personas(activity_id, page, per_page)
@@ -393,7 +399,7 @@ async def get_activity_personas(
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
@@ -401,12 +407,12 @@ async def get_activity_personas(
     "/{activity_id}/personas/{persona_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Unlink activity from persona",
-    description="Remove the relationship between an activity and a persona"
+    description="Remove the relationship between an activity and a persona",
 )
 async def unlink_activity_from_persona(
     activity_id: uuid.UUID,
     persona_id: uuid.UUID,
-    service: ActivityApplicationService = Depends(get_activity_service)
+    service: ActivityApplicationService = Depends(get_activity_service),
 ) -> None:
     """Unlink an activity from a persona."""
     try:
@@ -414,80 +420,81 @@ async def unlink_activity_from_persona(
     except ActivityPersonaLinkNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Link between activity {activity_id} and persona {persona_id} not found"
+            detail=f"Link between activity {activity_id} and persona {persona_id} not found",
         )
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
 @router.get(
     "/{activity_id}/compatibility/{other_activity_id}",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     summary="Check activity compatibility",
-    description="Check compatibility between two activities for sequence execution"
+    description="Check compatibility between two activities for sequence execution",
 )
 async def check_activity_compatibility(
     activity_id: uuid.UUID,
     other_activity_id: uuid.UUID,
-    service: ActivityApplicationService = Depends(get_activity_service)
-) -> Dict[str, Any]:
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> dict[str, Any]:
     """Check compatibility between two activities."""
     try:
-        compatibility = await service.check_activity_compatibility(activity_id, other_activity_id)
+        compatibility = await service.check_activity_compatibility(
+            activity_id, other_activity_id
+        )
         return compatibility
     except ActivityNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
 @router.get(
     "/{activity_id}/similar",
-    response_model=List[Dict[str, Any]],
+    response_model=list[dict[str, Any]],
     summary="Find similar activities",
-    description="Find activities similar to the given activity based on various criteria"
+    description="Find activities similar to the given activity based on various criteria",
 )
 async def find_similar_activities(
     activity_id: uuid.UUID,
     limit: int = Query(10, ge=1, le=50),
     min_similarity: float = Query(0.7, ge=0.0, le=1.0),
-    service: ActivityApplicationService = Depends(get_activity_service)
-) -> List[Dict[str, Any]]:
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> list[dict[str, Any]]:
     """Find similar activities."""
     try:
-        similar = await service.find_similar_activities(activity_id, limit, min_similarity)
+        similar = await service.find_similar_activities(
+            activity_id, limit, min_similarity
+        )
         return similar
     except ActivityNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Activity with ID {activity_id} not found"
+            detail=f"Activity with ID {activity_id} not found",
         )
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
 
 
 @router.get(
     "/{activity_id}/validation",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     summary="Validate activity",
-    description="Perform comprehensive validation of activity configuration"
+    description="Perform comprehensive validation of activity configuration",
 )
 async def validate_activity(
     activity_id: uuid.UUID,
-    service: ActivityApplicationService = Depends(get_activity_service)
-) -> Dict[str, Any]:
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> dict[str, Any]:
     """Validate activity configuration."""
     try:
         validation_result = await service.validate_activity(activity_id)
@@ -495,10 +502,10 @@ async def validate_activity(
     except ActivityNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Activity with ID {activity_id} not found"
+            detail=f"Activity with ID {activity_id} not found",
         )
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )

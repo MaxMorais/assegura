@@ -14,13 +14,13 @@ Base = declarative_base()
 
 # Import auth models
 try:
-    from ..auth.sql_models import TenantModel, ConsultantModel, AuthAuditLogModel
+    from ..auth.sql_models import AuthAuditLogModel, ConsultantModel, TenantModel
 except ImportError:
     print("Auth SQLAlchemy models not yet implemented")
 
 # TODO: Import domain models as they are created
 # from ..domain.personas.sql_models import TestPersonaModel
-# from ..domain.activities.sql_models import BusinessActivityModel  
+# from ..domain.activities.sql_models import BusinessActivityModel
 # from ..domain.journeys.sql_models import UserJourneyModel
 
 # Export Base for use in other modules

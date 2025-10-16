@@ -4,42 +4,44 @@ Contains the persona aggregate root and related domain objects
 for the ERPNext Test Automation Meta-Framework.
 """
 
-from .persona import Persona
-from .erpnext_roles import ERPNextRole, validate_erpnext_roles, get_role_recommendations, validate_role_combination
+from .erpnext_roles import (
+    ERPNextRole,
+    get_role_recommendations,
+    validate_erpnext_roles,
+    validate_role_combination,
+)
 from .exceptions import (
-    PersonaDomainError,
-    PersonaValidationError,
-    PersonaNotFoundError,
     PersonaAlreadyExistsError,
-    PersonaStateError,
     PersonaBusinessRuleError,
+    PersonaConcurrencyError,
+    PersonaDomainError,
+    PersonaMultipleValidationError,
+    PersonaNotFoundError,
     PersonaPermissionError,
     PersonaRoleError,
-    PersonaConcurrencyError,
-    PersonaMultipleValidationError
+    PersonaStateError,
+    PersonaValidationError,
 )
+from .persona import Persona
 
 __all__ = [
     # Main entities
-    'Persona',
-    
+    "Persona",
     # Value objects
-    'ERPNextRole',
-    
+    "ERPNextRole",
     # Validation functions
-    'validate_erpnext_roles',
-    'get_role_recommendations', 
-    'validate_role_combination',
-    
+    "validate_erpnext_roles",
+    "get_role_recommendations",
+    "validate_role_combination",
     # Exceptions
-    'PersonaDomainError',
-    'PersonaValidationError',
-    'PersonaNotFoundError',
-    'PersonaAlreadyExistsError',
-    'PersonaStateError',
-    'PersonaBusinessRuleError',
-    'PersonaPermissionError',
-    'PersonaRoleError',
-    'PersonaConcurrencyError',
-    'PersonaMultipleValidationError'
+    "PersonaDomainError",
+    "PersonaValidationError",
+    "PersonaNotFoundError",
+    "PersonaAlreadyExistsError",
+    "PersonaStateError",
+    "PersonaBusinessRuleError",
+    "PersonaPermissionError",
+    "PersonaRoleError",
+    "PersonaConcurrencyError",
+    "PersonaMultipleValidationError",
 ]

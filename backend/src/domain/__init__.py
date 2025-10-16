@@ -8,15 +8,17 @@ The domain layer is technology-agnostic and contains no external dependencies
 beyond basic Python libraries and Pydantic for data validation.
 """
 
-from .base_entity import AggregateRoot
-from .base_entity import BaseEntity
-from .base_entity import DomainService
-from .base_entity import Repository
-from .base_entity import ValueObject
+from .base_entity import (
+    AggregateRoot,
+    BaseEntity,
+    DomainService,
+    Repository,
+    ValueObject,
+)
 
 __all__ = [
     "BaseEntity",
-    "AggregateRoot", 
+    "AggregateRoot",
     "ValueObject",
     "DomainService",
     "Repository",
