@@ -118,12 +118,12 @@
 ### UI Layer  
 - [x] T054 [US2] Create activity form components in frontend/src/components/activity_forms/activity_form.py
 - [x] T055 [P] [US2] Create activity list display component in frontend/src/components/activity_forms/activity_list.py
-- [ ] T056 [US2] Implement activities page with CRUD operations in frontend/src/pages/activities.py
-- [ ] T057 [P] [US2] Create activity API client service in frontend/src/services/activity_service.py
+- [x] T056 [US2] Implement activities page with CRUD operations in frontend/src/pages/activities.py
+- [x] T057 [P] [US2] Create activity API client service in frontend/src/services/activity_service.py
 
 ### Integration Tests
-- [ ] T058 [US2] Create integration tests for activity API endpoints in backend/tests/integration/test_activity_api.py
-- [ ] T059 [P] [US2] Create unit tests for activity domain logic in backend/tests/unit/test_activity_domain.py
+- [x] T058 [US2] Create integration tests for activity API endpoints in backend/tests/integration/test_activity_api.py
+- [x] T059 [P] [US2] Create unit tests for activity domain logic in backend/tests/unit/test_activity_domain.py
 
 ## Phase 5: User Story 3 - Create Test Journeys (P3)
 
@@ -132,8 +132,8 @@
 **Independent Test**: Can be tested by creating a journey with multiple steps, validating step sequencing, and ensuring journeys can be executed independently.
 
 ### Robot Framework Tests (MANDATORY)
-- [ ] T060 [US3] Create Robot Framework test suite for journey CRUD operations in backend/tests/contract/test_journeys.robot
-- [ ] T061 [US3] Create Robot Framework test suite for action library integration in backend/tests/contract/test_action_library.robot
+- [x] T060 [US3] Create Robot Framework test suite for journey CRUD operations in backend/tests/contract/test_journeys.robot
+- [x] T061 [US3] Create Robot Framework test suite for action library integration in backend/tests/contract/test_action_library.robot
 
 ### Domain Layer - Action Library
 - [ ] T062 [US3] Implement Action Library domain entity in backend/src/domain/actions/action_library.py
