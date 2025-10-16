@@ -9,13 +9,13 @@ from typing import Any, Optional
 
 import streamlit as st
 
-from ...services.api_client import APIClient
-from ..shared.components import (
+from services.api_client import APIClient
+from components.shared.components import (
     show_error_message,
     show_success_message,
     show_warning_message,
 )
-from ..shared.forms import (
+from components.shared.forms import (
     render_number_input,
     render_select_box,
     render_text_area,

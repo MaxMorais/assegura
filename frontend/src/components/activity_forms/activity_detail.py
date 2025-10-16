@@ -8,13 +8,13 @@ from typing import Any
 
 import streamlit as st
 
-from ...services.api_client import APIClient
-from ..shared.components import (
+from services.api_client import APIClient
+from components.shared.components import (
     confirm_action,
     show_error_message,
     show_success_message,
 )
-from ..shared.utils import format_datetime, format_duration
+from components.shared.utils import format_datetime, format_duration
 
 
 def render_activity_detail(activity_id: str, api_client: APIClient):
