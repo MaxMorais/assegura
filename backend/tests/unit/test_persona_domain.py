@@ -509,7 +509,7 @@ class TestERPNextRoleValidator:
         """Test getting permissions for a specific role."""
         sales_manager_perms = ERPNextRole.get_role_permissions("Sales Manager")
 
-        assert isinstance(sales_manager_perms, list)
+        assert isinstance(sales_manager_perms, set)
         assert len(sales_manager_perms) > 0
 
         # Should include sales-related permissions
