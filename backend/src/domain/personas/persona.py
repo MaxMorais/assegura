@@ -122,7 +122,7 @@ class Persona(BaseEntity):
 
         if role not in self.erpnext_roles:
             self.erpnext_roles.append(role)
-            self.update_timestamp()
+            self.increment_version()
 
     def remove_erpnext_role(self, role: str) -> bool:
         """Remove an ERPNext role from the persona.
@@ -144,7 +144,7 @@ class Persona(BaseEntity):
 
         if role in self.erpnext_roles:
             self.erpnext_roles.remove(role)
-            self.update_timestamp()
+            self.increment_version()
             return True
 
         return False
@@ -173,7 +173,7 @@ class Persona(BaseEntity):
         if permission not in current_permissions:
             current_permissions.append(permission)
             self.permissions = ",".join(current_permissions)
-            self.update_timestamp()
+            self.increment_version()
 
     def remove_permission(self, permission: str) -> bool:
         """Remove a permission from the persona.
@@ -188,7 +188,7 @@ class Persona(BaseEntity):
         if permission in current_permissions:
             current_permissions.remove(permission)
             self.permissions = ",".join(current_permissions)
-            self.update_timestamp()
+            self.increment_version()
             return True
 
         return False
@@ -235,12 +235,12 @@ class Persona(BaseEntity):
     def deactivate(self) -> None:
         """Deactivate the persona."""
         self.is_active = False
-        self.update_timestamp()
+        self.increment_version()
 
     def activate(self) -> None:
         """Activate the persona."""
         self.is_active = True
-        self.update_timestamp()
+        self.increment_version()
 
     def get_effective_permissions(self) -> set[str]:
         """Get all effective permissions including role-based permissions.
@@ -260,12 +260,12 @@ class Persona(BaseEntity):
     def update_name(self, name: str) -> None:
         """Update persona name."""
         self.name = name  # Will trigger validation
-        self.update_timestamp()
+        self.increment_version()
 
     def update_description(self, description: str) -> None:
         """Update persona description."""
         self.description = description  # Will trigger validation
-        self.update_timestamp()
+        self.increment_version()
 
     def to_dict(self) -> dict:
         """Convert persona to dictionary representation.
@@ -365,7 +365,7 @@ class Persona(BaseEntity):
 
     def __str__(self) -> str:
         """String representation of persona."""
-        return f"Persona(name='{self.name}', roles={len(self.erpnext_roles)}, active={self.is_active})"
+        return f"Persona(id={self.id}, name='{self.name}', roles={len(self.erpnext_roles)}, active={self.is_active})"
 
     def __repr__(self) -> str:
         """Detailed string representation of persona."""

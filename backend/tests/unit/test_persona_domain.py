@@ -90,17 +90,17 @@ class TestPersonaDomainEntity:
         persona = Persona(
             name="Test User",
             description="Test user with multiple roles",
-            erpnext_roles=["Sales Manager", "Customer", "Item Manager"],
+            erpnext_roles=["Sales Manager", "Customer", "Stock Manager"],
         )
 
         # Test list access
-        assert persona.erpnext_roles == ["Sales Manager", "Customer", "Item Manager"]
+        assert persona.erpnext_roles == ["Sales Manager", "Customer", "Stock Manager"]
 
         # Test string representation
         roles_str = persona.erpnext_roles_str
         assert "Sales Manager" in roles_str
         assert "Customer" in roles_str
-        assert "Item Manager" in roles_str
+        assert "Stock Manager" in roles_str
 
     def test_persona_permissions_property(self):
         """Test permissions property conversions."""
@@ -122,6 +122,7 @@ class TestPersonaDomainEntity:
         """Test calculation of effective permissions."""
         persona = Persona(
             name="Sales Manager",
+            description="Sales manager with mixed permissions",
             erpnext_roles=["Sales Manager", "Customer"],
             permissions="read_supplier,write_purchase_order",
         )
@@ -129,7 +130,7 @@ class TestPersonaDomainEntity:
         effective_perms = persona.get_effective_permissions()
 
         # Should include role-based permissions plus explicit permissions
-        assert isinstance(effective_perms, list)
+        assert isinstance(effective_perms, set)
         assert len(effective_perms) > 0
 
         # Should include explicit permissions
@@ -138,7 +139,7 @@ class TestPersonaDomainEntity:
 
     def test_persona_update_name(self):
         """Test updating persona name."""
-        persona = Persona(name="Original Name", erpnext_roles=["Sales User"])
+        persona = Persona(name="Original Name", description="Test persona for name updates", erpnext_roles=["Sales User"])
         original_updated_at = persona.updated_at
 
         # Small delay to ensure timestamp difference
@@ -165,7 +166,7 @@ class TestPersonaDomainEntity:
 
     def test_persona_add_erpnext_role(self):
         """Test adding ERPNext role to persona."""
-        persona = Persona(name="Test User", erpnext_roles=["Sales User"])
+        persona = Persona(name="Test User", description="Test user for ERPNext role management", erpnext_roles=["Sales User"])
 
         persona.add_erpnext_role("Sales Manager")
 
@@ -176,7 +177,7 @@ class TestPersonaDomainEntity:
     def test_persona_remove_erpnext_role(self):
         """Test removing ERPNext role from persona."""
         persona = Persona(
-            name="Test User", erpnext_roles=["Sales User", "Sales Manager", "Customer"]
+            name="Test User", description="Test user for role removal operations", erpnext_roles=["Sales User", "Sales Manager", "Customer"]
         )
 
         persona.remove_erpnext_role("Sales Manager")
@@ -187,7 +188,7 @@ class TestPersonaDomainEntity:
 
     def test_persona_remove_erpnext_role_validation(self):
         """Test validation when removing ERPNext role."""
-        persona = Persona(name="Test User", erpnext_roles=["Sales User"])  # Only one role
+        persona = Persona(name="Test User", description="Test user for validation checks", erpnext_roles=["Sales User"])  # Only one role
 
         # Should not allow removing the last role
         with pytest.raises(PersonaValidationError):
@@ -195,7 +196,7 @@ class TestPersonaDomainEntity:
 
     def test_persona_activate_deactivate(self):
         """Test persona activation and deactivation."""
-        persona = Persona(name="Test User", erpnext_roles=["Sales User"], is_active=False)
+        persona = Persona(name="Test User", description="Test user for activation testing", erpnext_roles=["Sales User"], is_active=False)
 
         # Test activation
         persona.activate()
@@ -209,9 +210,9 @@ class TestPersonaDomainEntity:
 
     def test_persona_equality(self):
         """Test persona equality comparison."""
-        persona1 = Persona(name="Test User", erpnext_roles=["Sales User"])
+        persona1 = Persona(name="Test User", description="Test user for equality comparison", erpnext_roles=["Sales User"])
 
-        persona2 = Persona(name="Test User", erpnext_roles=["Sales User"])
+        persona2 = Persona(name="Test User", description="Test user for equality comparison", erpnext_roles=["Sales User"])
 
         # Different instances with same data should not be equal (different IDs)
         assert persona1 != persona2
@@ -222,7 +223,7 @@ class TestPersonaDomainEntity:
     def test_persona_string_representation(self):
         """Test persona string representation."""
         persona = Persona(
-            name="Sales Manager", erpnext_roles=["Sales Manager", "Customer"]
+            name="Sales Manager", description="Sales manager persona", erpnext_roles=["Sales Manager", "Customer"]
         )
 
         str_repr = str(persona)
@@ -254,17 +255,17 @@ class TestPersonaDomainService:
 
         # Test with invalid role
         with pytest.raises(PersonaValidationError):
-            persona = Persona(name="Invalid Persona", erpnext_roles=["Invalid Role"])
+            persona = Persona(name="Invalid Persona", description="Invalid persona", erpnext_roles=["Invalid Role"])
             service.validate_persona_creation(persona)
 
     def test_validate_persona_update_success(self):
         """Test successful persona update validation."""
         service = PersonaDomainService()
 
-        original_persona = Persona(name="Original Name", erpnext_roles=["Sales User"])
+        original_persona = Persona(name="Original Name", description="Original persona", erpnext_roles=["Sales User"])
 
         updated_persona = Persona(
-            name="Updated Name", erpnext_roles=["Sales User", "Sales Manager"]
+            name="Updated Name", description="Updated persona", erpnext_roles=["Sales User", "Sales Manager"]
         )
         updated_persona.id = original_persona.id  # Same ID
 
@@ -324,7 +325,7 @@ class TestPersonaDomainService:
         target_persona = Persona(
             name="Senior Sales Manager",
             description="Senior sales manager with team leadership",
-            erpnext_roles=["Sales Manager", "Customer", "Item Manager"],
+            erpnext_roles=["Sales Manager", "Customer", "Stock Manager"],
             permissions="read_sales_order,write_sales_order,read_customer",
         )
 
@@ -432,7 +433,7 @@ class TestPersonaDomainService:
         persona2 = Persona(
             name="Sales Manager B",
             description="Second sales manager",
-            erpnext_roles=["Sales Manager", "Item Manager"],
+            erpnext_roles=["Sales Manager", "Stock Manager"],
             permissions="read_item,write_item",
         )
 
@@ -443,7 +444,7 @@ class TestPersonaDomainService:
         assert merged_persona.name == "Merged Sales Manager"
 
         # Should have combined roles (unique)
-        expected_roles = {"Sales Manager", "Customer", "Item Manager"}
+        expected_roles = {"Sales Manager", "Customer", "Stock Manager"}
         assert set(merged_persona.erpnext_roles) == expected_roles
 
         # Should have combined permissions
