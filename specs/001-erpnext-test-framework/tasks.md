@@ -35,7 +35,7 @@
 
 **Purpose**: Core infrastructure needed by all user stories
 
-- [ ] T011 Implement consultant authentication and multi-tenant architecture in backend/src/infrastructure/auth/
+- [x] T011 Implement consultant authentication and multi-tenant architecture in backend/src/infrastructure/auth/
 - [ ] T012 [P] Create database migration system with Alembic in backend/migrations/
 - [ ] T013 [P] Implement repository pattern base classes in backend/src/infrastructure/database/repositories/
 - [ ] T014 [P] Create API error handling middleware in backend/src/api/middleware/error_handler.py
