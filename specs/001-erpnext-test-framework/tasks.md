@@ -171,9 +171,9 @@
 - [x] T084 [US3] Implement journeys page with builder interface in frontend/src/pages/journeys.py
 - [x] T085 [P] [US3] Create journey API client service in frontend/src/services/journey_service.py
 
-### Integration Tests  
-- [ ] T086 [US3] Create integration tests for journey API endpoints in backend/tests/integration/test_journey_api.py
-- [ ] T087 [P] [US3] Create unit tests for journey domain logic in backend/tests/unit/test_journey_domain.py
+### Integration Tests
+- [x] T086 [US3] Create integration tests for journey API endpoints in backend/tests/integration/test_journey_api.py
+- [x] T087 [P] [US3] Create unit tests for journey domain logic in backend/tests/unit/test_journey_domain.py
 
 ## Phase 6: User Story 4 - Generate Robot Framework Tests (P4)
 
