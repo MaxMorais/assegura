@@ -1,0 +1,162 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: erpnext-test-postgres
+    environment:
+      POSTGRES_DB: erpnext_test_automation
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_MULTIPLE_DATABASES: erpnext_test_automation_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    networks:
+      - erpnext_test_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis for Background Tasks
+  redis:
+    image: redis:7-alpine
+    container_name: erpnext-test-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - erpnext_test_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: erpnext-test-backend
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: erpnext_test_automation
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REDIS_URL: redis://redis:6379/0
+      DEBUG: true
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - erpnext_test_network
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Worker for Background Tasks
+  celery_worker:
+    build:
+      context: ./backend  
+      dockerfile: Dockerfile
+      target: development
+    container_name: erpnext-test-celery-worker
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: erpnext_test_automation
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: INFO
+    volumes:
+      - ./backend:/app
+      - backend_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - erpnext_test_network
+    command: celery -A src.infrastructure.tasks worker --loglevel=info
+
+  # Frontend Streamlit App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: erpnext-test-frontend
+    environment:
+      API_BASE_URL: http://backend:8000
+      API_TIMEOUT: 30
+      DEBUG: true
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+    networks:
+      - erpnext_test_network
+    command: streamlit run src/main.py --server.address 0.0.0.0 --server.port 8501
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Robot Framework Test Execution Environment
+  robot_executor:
+    build:
+      context: ./
+      dockerfile: Dockerfile.robot
+    container_name: erpnext-test-robot-executor
+    environment:
+      API_BASE_URL: http://backend:8000
+    volumes:
+      - ./tests:/tests
+      - robot_results:/results
+      - ./backend/tests/contract:/contract_tests
+    depends_on:
+      - backend
+    networks:
+      - erpnext_test_network
+    profiles:
+      - test-execution
+    command: robot --outputdir /results /tests
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_logs:
+    driver: local
+  robot_results:
+    driver: local
+
+networks:
+  erpnext_test_network:
+    driver: bridge

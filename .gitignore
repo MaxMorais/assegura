@@ -128,9 +128,7 @@ dmypy.json
 # PostgreSQL
 *.sql
 
-# Docker
-Dockerfile*
-docker-compose*.yml
+# Docker (specific excludes, not all Dockerfiles)
 .dockerignore
 
 # IDE
