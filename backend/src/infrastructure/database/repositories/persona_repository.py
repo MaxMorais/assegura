@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from ....domain.personas import Persona, PersonaAlreadyExistsError, PersonaConcurrencyError
 from ....domain.personas.persona_repository import PersonaRepository
-from ../models.persona_model import PersonaModel
+from ..models.persona_model import PersonaModel
 
 logger = logging.getLogger(__name__)
 
