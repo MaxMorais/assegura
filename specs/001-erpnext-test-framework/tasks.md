@@ -79,7 +79,7 @@
 - [x] T034 [P] [US1] Create persona API client service in frontend/src/services/persona_service.py
 
 ### Integration Tests
-- [x] T035 [US1] Create integration tests for persona API endpoints in backend/tests/integration/test_persona_api.py
+- [ ] T035 [US1] Create integration tests for persona API endpoints in backend/tests/integration/test_persona_api.py
 - [x] T036 [P] [US1] Create unit tests for persona domain logic in backend/tests/unit/test_persona_domain.py
 
 ## Phase 4: User Story 2 - Define Business Activities (P2)
@@ -113,7 +113,7 @@
 
 ### API Layer
 - [x] T052 [US2] Implement activity REST endpoints in backend/src/api/activities/activity_routes.py
-- [x] T053 [P] [US2] Implement nested persona-activities endpoints in backend/src/api/personas/persona_activity_routes.py
+- [ ] T053 [P] [US2] Implement nested persona-activities endpoints in backend/src/api/personas/persona_activity_routes.py
 
 ### UI Layer  
 - [x] T054 [US2] Create activity form components in frontend/src/components/activity_forms/activity_form.py
@@ -146,21 +146,21 @@
 - [x] T067 [P] [US3] Implement journey-action relationships in backend/src/domain/journeys/journey_action_service.py
 
 ### Application Layer
-- [x] T068 [US3] Create Journey DTO schemas for API requests/responses in backend/src/application/dto/journey_schemas.py
-- [x] T069 [US3] Create Action Library DTO schemas in backend/src/application/dto/action_schemas.py  
-- [x] T070 [US3] Implement JourneyService for use cases in backend/src/application/services/journey_service.py
-- [x] T071 [P] [US3] Implement ActionLibraryService in backend/src/application/services/action_service.py
+- [ ] T068 [US3] Create Journey DTO schemas for API requests/responses in backend/src/application/dto/journey_schemas.py
+- [ ] T069 [US3] Create Action Library DTO schemas in backend/src/application/dto/action_schemas.py  
+- [ ] T070 [US3] Implement JourneyService for use cases in backend/src/application/services/journey_service.py
+- [ ] T071 [P] [US3] Implement ActionLibraryService in backend/src/application/services/action_service.py
 
 ### Infrastructure Layer
-- [x] T072 [US3] Implement JourneyRepository with SQLAlchemy in backend/src/infrastructure/database/repositories/journey_repository.py
-- [x] T073 [P] [US3] Implement ActionLibraryRepository in backend/src/infrastructure/database/repositories/action_repository.py
-- [x] T074 [P] [US3] Create journey database models in backend/src/infrastructure/database/models/journey_models.py
-- [x] T075 [P] [US3] Create action library database models in backend/src/infrastructure/database/models/action_library_models.py
-- [x] T076 [P] [US3] Create journey database migration in backend/migrations/versions/002_create_journey_tables.py
-- [x] T077 [P] [US3] Create action library database migration in backend/migrations/versions/003_create_action_library_tables.py
+- [ ] T072 [US3] Implement JourneyRepository with SQLAlchemy in backend/src/infrastructure/database/repositories/journey_repository.py
+- [ ] T073 [P] [US3] Implement ActionLibraryRepository in backend/src/infrastructure/database/repositories/action_repository.py
+- [ ] T074 [P] [US3] Create journey database models in backend/src/infrastructure/database/models/journey_model.py
+- [ ] T075 [P] [US3] Create action library database models in backend/src/infrastructure/database/models/action_model.py
+- [ ] T076 [P] [US3] Create journey database migration in backend/migrations/versions/003_create_journeys_table.py
+- [ ] T077 [P] [US3] Create action library database migration in backend/migrations/versions/004_create_actions_table.py
 
 ### API Layer  
-- [ ] T078 [US3] Implement journey REST endpoints in backend/src/api/journeys/journey_routes.py
+- [x] T078 [US3] Implement journey REST endpoints in backend/src/api/journeys/journey_routes.py
 - [ ] T079 [P] [US3] Implement action library REST endpoints in backend/src/api/actions/action_routes.py
 - [ ] T080 [P] [US3] Implement nested activity-journeys endpoints in backend/src/api/activities/activity_journey_routes.py
 
