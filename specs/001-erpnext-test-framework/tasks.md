@@ -37,7 +37,7 @@
 
 - [x] T011 Implement consultant authentication and multi-tenant architecture in backend/src/infrastructure/auth/
 - [x] T012 [P] Create database migration system with Alembic in backend/migrations/
-- [ ] T013 [P] Implement repository pattern base classes in backend/src/infrastructure/database/repositories/
+- [x] T013 [P] Implement repository pattern base classes in backend/src/infrastructure/database/repositories/
 - [ ] T014 [P] Create API error handling middleware in backend/src/api/middleware/error_handler.py
 - [ ] T015 [P] Set up logging configuration for both backend and frontend in config/logging.yml
 - [ ] T016 [P] Create shared Streamlit components library in frontend/src/components/shared/
