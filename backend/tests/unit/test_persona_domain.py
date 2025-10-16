@@ -240,8 +240,8 @@ class TestPersonaDomainService:
 
         persona = Persona(
             name="Valid Persona",
-            description="Valid description",
-            erpnext_roles=["Sales Manager", "Customer"],
+            description="A valid persona with meaningful description for testing business rules validation",
+            erpnext_roles=["Sales Manager"],
             permissions="read_sales_order,write_sales_order",
             is_active=True,
         )

@@ -31,18 +31,14 @@ class PersonaService:
         """
         errors = []
 
-        # Validate basic persona structure
-        try:
-            persona.validate()
-        except PersonaValidationError as e:
-            errors.append(e)
+        # Basic persona structure is validated during construction in Pydantic v2
 
         # Business rule: Persona name must be meaningful
         if len(persona.name.strip()) < 3:
             errors.append(
                 PersonaValidationError(
+                    "name",
                     "Persona name must be at least 3 characters for clarity",
-                    field="name",
                     value=persona.name,
                 )
             )
@@ -51,8 +47,8 @@ class PersonaService:
         if len(persona.description.strip()) < 20:
             errors.append(
                 PersonaValidationError(
+                    "description",
                     "Persona description must be at least 20 characters to provide meaningful context",
-                    field="description",
                     value=persona.description,
                 )
             )
@@ -63,8 +59,8 @@ class PersonaService:
             if "redundant" in warning.lower() or "conflicting" in warning.lower():
                 errors.append(
                     PersonaValidationError(
+                        "erpnext_roles",
                         f"Role combination issue: {warning}",
-                        field="erpnext_roles",
                         value=persona.erpnext_roles_str,
                     )
                 )
@@ -345,8 +341,8 @@ class PersonaService:
         if has_external and has_internal:
             errors.append(
                 PersonaValidationError(
+                    "erpnext_roles",
                     "External roles (Customer/Supplier) should not be combined with internal roles",
-                    field="erpnext_roles",
                     value=persona.erpnext_roles_str,
                 )
             )
@@ -360,8 +356,8 @@ class PersonaService:
                     if action in restricted_actions:
                         errors.append(
                             PersonaValidationError(
+                                "permissions",
                                 f"External personas should not have '{action}' permissions",
-                                field="permissions",
                                 value=permission,
                             )
                         )
@@ -380,8 +376,8 @@ class PersonaService:
             if len(persona.description) < 50:
                 errors.append(
                     PersonaValidationError(
+                        "description",
                         "Admin personas require detailed descriptions (minimum 50 characters)",
-                        field="description",
                         value=persona.description,
                     )
                 )
@@ -390,8 +386,8 @@ class PersonaService:
             if "admin" not in persona.name.lower():
                 errors.append(
                     PersonaValidationError(
+                        "name",
                         "Admin personas should include 'Admin' or 'Administrator' in the name",
-                        field="name",
                         value=persona.name,
                     )
                 )
