@@ -107,17 +107,17 @@
 - [x] T048: Create integration tests for activities
 
 ### Infrastructure Layer
-- [ ] T049 [US2] Implement ActivityRepository with SQLAlchemy in backend/src/infrastructure/database/repositories/activity_repository.py  
-- [ ] T050 [P] [US2] Create activity database model in backend/src/infrastructure/database/models/activity_model.py
-- [ ] T051 [P] [US2] Create activity database migration in backend/migrations/versions/002_create_activities_table.py
+- [x] T049 [US2] Implement ActivityRepository with SQLAlchemy in backend/src/infrastructure/database/repositories/activity_repository.py  
+- [x] T050 [P] [US2] Create activity database model in backend/src/infrastructure/database/models/activity_model.py
+- [x] T051 [P] [US2] Create activity database migration in backend/migrations/versions/002_create_activities_table.py
 
 ### API Layer
-- [ ] T052 [US2] Implement activity REST endpoints in backend/src/api/activities/activity_routes.py
+- [x] T052 [US2] Implement activity REST endpoints in backend/src/api/activities/activity_routes.py
 - [ ] T053 [P] [US2] Implement nested persona-activities endpoints in backend/src/api/personas/persona_activity_routes.py
 
 ### UI Layer  
-- [ ] T054 [US2] Create activity form components in frontend/src/components/activity_forms/activity_form.py
-- [ ] T055 [P] [US2] Create activity list display component in frontend/src/components/activity_forms/activity_list.py
+- [x] T054 [US2] Create activity form components in frontend/src/components/activity_forms/activity_form.py
+- [x] T055 [P] [US2] Create activity list display component in frontend/src/components/activity_forms/activity_list.py
 - [ ] T056 [US2] Implement activities page with CRUD operations in frontend/src/pages/activities.py
 - [ ] T057 [P] [US2] Create activity API client service in frontend/src/services/activity_service.py
 
