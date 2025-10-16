@@ -88,46 +88,42 @@ def render_activities_tab(api_client: APIClient):
         # View options
         view_mode = st.selectbox("View", ["Table", "Cards"], key="activity_view_mode")
 
-    try:
-        # Fetch activities with filters
-        filters = prepare_activity_filters()
-        activities_data = api_client.get_activities(
-            filters=filters,
-            page=st.session_state.activity_page,
-            per_page=st.session_state.activity_per_page,
-        )
+    
+    # Fetch activities with filters
+    filters = prepare_activity_filters()
+    activities_data = api_client.get_activities(
+        filters=filters,
+        page=st.session_state.activity_page,
+        per_page=st.session_state.activity_per_page,
+    )
 
-        activities = activities_data.get("activities", [])
-        total_count = activities_data.get("total", 0)
+    activities = activities_data.get("activities", [])
+    total_count = activities_data.get("total", 0)
 
-        if activities:
-            # Display count and pagination info
-            start_idx = (
-                st.session_state.activity_page - 1
-            ) * st.session_state.activity_per_page + 1
-            end_idx = min(start_idx + len(activities) - 1, total_count)
+    if activities:
+        # Display count and pagination info
+        start_idx = (
+            st.session_state.activity_page - 1
+        ) * st.session_state.activity_per_page + 1
+        end_idx = min(start_idx + len(activities) - 1, total_count)
 
-            st.info(f"Showing {start_idx}-{end_idx} of {total_count} activities")
+        st.info(f"Showing {start_idx}-{end_idx} of {total_count} activities")
 
-            # Display activities
-            if view_mode == "Table":
-                render_activities_table(activities, api_client)
-            else:
-                render_activities_cards(activities, api_client)
-
-            # Pagination
-            render_activity_pagination(total_count)
-
+        # Display activities
+        if view_mode == "Table":
+            render_activities_table(activities, api_client)
         else:
-            st.info("No activities found matching your criteria.")
+            render_activities_cards(activities, api_client)
 
-            if st.button("Create First Activity"):
-                st.session_state.show_create_form = True
-                st.rerun()
+        # Pagination
+        render_activity_pagination(total_count)
 
-    except Exception as e:
-        show_error_message(f"Error loading activities: {str(e)}")
+    else:
+        st.info("No activities found matching your criteria.")
 
+        if st.button("Create First Activity"):
+            st.session_state.show_create_form = True
+            st.rerun()
 
 def render_activity_filters():
     """Render the activity filtering sidebar."""
@@ -441,59 +437,54 @@ def render_activity_card(activity: dict[str, Any], api_client: APIClient):
 def render_statistics_tab(api_client: APIClient):
     """Render the activity statistics tab."""
 
-    try:
-        stats = api_client.get_activity_statistics()
+    stats = api_client.get_activity_statistics()
 
-        # Key metrics
-        col1, col2, col3, col4 = st.columns(4)
+    # Key metrics
+    col1, col2, col3, col4 = st.columns(4)
 
-        with col1:
-            st.metric("Total Activities", stats.get("total", 0))
+    with col1:
+        st.metric("Total Activities", stats.get("total", 0))
 
-        with col2:
-            st.metric("Active Activities", stats.get("active", 0))
+    with col2:
+        st.metric("Active Activities", stats.get("active", 0))
 
-        with col3:
-            st.metric("Inactive Activities", stats.get("inactive", 0))
+    with col3:
+        st.metric("Inactive Activities", stats.get("inactive", 0))
 
-        with col4:
-            avg_duration = stats.get("avg_duration", 0)
-            st.metric("Avg Duration", format_duration(avg_duration))
+    with col4:
+        avg_duration = stats.get("avg_duration", 0)
+        st.metric("Avg Duration", format_duration(avg_duration))
 
-        # Charts
-        st.subheader("📊 Distribution Charts")
+    # Charts
+    st.subheader("📊 Distribution Charts")
 
-        col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-        with col1:
-            # By module
-            by_module = stats.get("by_module", {})
-            if by_module:
-                st.subheader("Activities by Module")
-                st.bar_chart(by_module)
+    with col1:
+        # By module
+        by_module = stats.get("by_module", {})
+        if by_module:
+            st.subheader("Activities by Module")
+            st.bar_chart(by_module)
 
-        with col2:
-            # By action type
-            by_action = stats.get("by_action_type", {})
-            if by_action:
-                st.subheader("Activities by Action Type")
-                st.bar_chart(by_action)
+    with col2:
+        # By action type
+        by_action = stats.get("by_action_type", {})
+        if by_action:
+            st.subheader("Activities by Action Type")
+            st.bar_chart(by_action)
 
-        # Complexity distribution
-        by_complexity = stats.get("by_complexity", {})
-        if by_complexity:
-            st.subheader("Activities by Complexity")
-            complexity_df = pd.DataFrame(
-                [
-                    {"Complexity": f"Level {k}", "Count": v}
-                    for k, v in by_complexity.items()
-                ]
-            )
-            st.bar_chart(complexity_df.set_index("Complexity"))
-
-    except Exception as e:
-        show_error_message(f"Error loading statistics: {str(e)}")
-
+    # Complexity distribution
+    by_complexity = stats.get("by_complexity", {})
+    if by_complexity:
+        st.subheader("Activities by Complexity")
+        complexity_df = pd.DataFrame(
+            [
+                {"Complexity": f"Level {k}", "Count": v}
+                for k, v in by_complexity.items()
+            ]
+        )
+        st.bar_chart(complexity_df.set_index("Complexity"))
 
 def render_bulk_actions_tab(api_client: APIClient):
     """Render the bulk actions tab."""

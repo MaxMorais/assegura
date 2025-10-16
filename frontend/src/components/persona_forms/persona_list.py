@@ -122,7 +122,7 @@ class PersonaListComponent:
             Action taken if any ('refresh', 'create_new', etc.)
         """
         if container is None:
-            container = st
+            container = st.container()
 
         with container:
             action_taken = None
@@ -600,7 +600,7 @@ class PersonaListComponent:
                 params["erpnext_role"] = filters["erpnext_role"]
 
             # Call API
-            result = self.api_client.list_personas(params)
+            result = self.api_client.get_personas()
 
             # Update list data
             list_data.update(
@@ -642,7 +642,7 @@ def render_persona_list(
     # Load personas if needed
     list_component.load_personas()
 
-    action_taken = list_component.render_persona_list(container, **kwargs)
+    action_taken = list_component.render_persona_list(container=container, **kwargs)
 
     # Return selected persona info if needed
     selection = list_component.list_state.get_selection()

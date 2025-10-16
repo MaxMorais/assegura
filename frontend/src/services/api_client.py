@@ -396,19 +396,19 @@ class APIClient:
     # Placeholder methods for future implementation:
 
     def get_personas(self) -> Optional[dict[str, Any]]:
-        """Get all test personas. Placeholder for future implementation."""
+        """Get all personas. Placeholder for future implementation."""
         logger.info("get_personas - placeholder for future implementation")
-        return None
+        return {"personas": [], "total": 0, "has_more": False}
 
     def create_persona(self, persona_data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Create new test persona. Placeholder for future implementation."""
         logger.info("create_persona - placeholder for future implementation")
         return None
 
-    def get_activities(self) -> Optional[dict[str, Any]]:
+    def get_activities(self, **kwargs) -> Optional[dict[str, Any]]:
         """Get all business activities. Placeholder for future implementation."""
         logger.info("get_activities - placeholder for future implementation")
-        return None
+        return {"activities": [], "total": 0, "has_more": False}
 
     def create_activity(
         self, activity_data: dict[str, Any]
@@ -417,20 +417,49 @@ class APIClient:
         logger.info("create_activity - placeholder for future implementation")
         return None
 
+    def get_activity_statistics(self) -> Optional[dict[str, Any]]:
+        """Get activity statistics. Placeholder for future implementation."""
+        logger.info("get_activity_statistics - placeholder for future implementation")
+        return {
+            "total_activities": 0,
+            "active_activities": 0,
+            "inactive_activities": 0,
+            "by_module": {},
+            "by_complexity": {},
+            "avg_duration": 0
+        }
+
+    def delete_activity(self, activity_id: str) -> Optional[dict[str, Any]]:
+        """Delete a specific activity. Placeholder for future implementation."""
+        logger.info("delete_activity - placeholder for future implementation")
+        return {"success": True, "message": "Activity deleted successfully"}
+
+    def bulk_update_activity_status(
+        self, activity_ids: list[str], is_active: bool
+    ) -> Optional[dict[str, Any]]:
+        """Bulk update activity status. Placeholder for future implementation."""
+        logger.info("bulk_update_activity_status - placeholder for future implementation")
+        return {"success": True, "updated_count": len(activity_ids)}
+
+    def bulk_delete_activities(self, activity_ids: list[str]) -> Optional[dict[str, Any]]:
+        """Bulk delete activities. Placeholder for future implementation."""
+        logger.info("bulk_delete_activities - placeholder for future implementation")
+        return {"success": True, "deleted_count": len(activity_ids)}
+
     def get_journeys(self) -> Optional[dict[str, Any]]:
         """Get all user journeys. Placeholder for future implementation."""
         logger.info("get_journeys - placeholder for future implementation")
         return None
-        """Get API health status.
 
-        Returns:
-            Health status data or None if unavailable
-        """
-        try:
-            return self.get("/health")
-        except APIError as e:
-            logger.error(f"Health check failed: {e}")
-            return None
+    def validate_persona_data(self, persona_data: dict[str, Any]) -> Optional[dict[str, Any]]:
+        """Validate persona data. Placeholder for future implementation."""
+        logger.info("validate_persona_data - placeholder for future implementation")
+        return {"valid": True, "errors": []}
+
+    def get_persona_statistics(self) -> Optional[dict[str, Any]]:
+        """Get persona statistics. Placeholder for future implementation."""
+        logger.info("get_persona_statistics - placeholder for future implementation")
+        return {"total_personas": 0, "active_personas": 0, "inactive_personas": 0}
 
     def login(self, username: str, password: str) -> dict[str, Any]:
         """Authenticate user and get tokens.
