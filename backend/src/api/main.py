@@ -269,9 +269,15 @@ def _configure_routes(app: "FastAPI") -> None:
             redis=redis_status
         )
     
-    # TODO: Add route includes for domain modules when implemented
+    # Add route includes for domain modules
+    try:
+        from .activities import activities_router
+        app.include_router(activities_router, prefix="/api/v1")
+    except ImportError:
+        pass  # Activities module not ready yet
+    
+    # TODO: Add remaining route includes when implemented
     # app.include_router(personas.router, prefix="/personas", tags=["Personas"])
-    # app.include_router(activities.router, prefix="/activities", tags=["Activities"])
     # app.include_router(journeys.router, prefix="/journeys", tags=["Journeys"])
     # app.include_router(test_generation.router, prefix="/test-generation", tags=["Test Generation"])
 
