@@ -4,9 +4,10 @@ Main page for managing ERPNext business activities including listing,
 searching, creating, editing, and viewing detailed activity information.
 """
 
-import streamlit as st
 import sys
 from pathlib import Path
+
+import streamlit as st
 
 # Add src to path for imports
 src_path = Path(__file__).parent.parent
@@ -27,16 +28,17 @@ def show_activities() -> None:
 
 def main():
     """Main activities page."""
-    
+
     st.set_page_config(
         page_title="Activity Management - ERPNext Test Framework",
         page_icon="📋",
         layout="wide",
-        initial_sidebar_state="expanded"
+        initial_sidebar_state="expanded",
     )
-    
+
     # Custom CSS
-    st.markdown("""
+    st.markdown(
+        """
     <style>
     .main-header {
         padding: 2rem 0 1rem 0;
@@ -71,33 +73,35 @@ def main():
     .complexity-4 { background-color: #f8d7da; color: #721c24; }
     .complexity-5 { background-color: #f5c6cb; color: #491217; }
     </style>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Navigation check - if coming from persona detail page
-    if 'view_activity_id' in st.session_state:
+    if "view_activity_id" in st.session_state:
         # Show activity detail
         from components.activity_forms import render_activity_detail
-        
+
         api_client = APIClient()
         render_activity_detail(st.session_state.view_activity_id, api_client)
-        
+
         # Back button
         if st.button("⬅️ Back to Activities List"):
             del st.session_state.view_activity_id
             st.rerun()
-    
-    elif 'edit_activity_id' in st.session_state:
+
+    elif "edit_activity_id" in st.session_state:
         # Show activity edit form
         from components.activity_forms import render_activity_form
-        
+
         api_client = APIClient()
         render_activity_form(api_client, st.session_state.edit_activity_id)
-        
+
         # Back button
         if st.button("⬅️ Back to Activities List"):
             del st.session_state.edit_activity_id
             st.rerun()
-    
+
     else:
         # Show main activities list
         try:

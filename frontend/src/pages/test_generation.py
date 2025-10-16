@@ -12,20 +12,20 @@ except ImportError:
 
 def show_test_generation() -> None:
     """Display test generation interface.
-    
+
     Placeholder implementation for bootstrap completion.
     """
     try:
         st.header("🤖 Test Generation")
         st.info("Test Generation page will be implemented in subsequent tasks")
-        
+
         # Placeholder for future test generation content:
         # - Journey selection
         # - Test configuration
         # - Robot Framework test generation
         # - Test execution
         # - Results visualization
-        
+
     except NameError:
         # Streamlit not available during initial setup
         pass

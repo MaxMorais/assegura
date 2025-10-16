@@ -408,17 +408,18 @@ def validate_erpnext_roles(roles: list[str]) -> None:
         PersonaValidationError: If any role is invalid
     """
     if not roles:
-        raise PersonaValidationError("At least one ERPNext role is required")
+        raise PersonaValidationError("erpnext_roles", "At least one ERPNext role is required")
 
     valid_roles = ERPNextRole.get_all_roles()
 
     for role in roles:
         if not role or not role.strip():
-            raise PersonaValidationError("Role name cannot be empty")
+            raise PersonaValidationError("erpnext_roles", "Role name cannot be empty")
 
         role = role.strip()
         if role not in valid_roles:
             raise PersonaValidationError(
+                "erpnext_roles",
                 f"Invalid ERPNext role: '{role}'. Valid roles are: {', '.join(valid_roles)}"
             )
 

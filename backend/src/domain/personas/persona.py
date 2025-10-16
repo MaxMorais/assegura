@@ -9,6 +9,8 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from pydantic import Field, field_validator
+
 from ..base_entity import BaseEntity
 from .erpnext_roles import ERPNextRole, validate_erpnext_roles
 from .exceptions import PersonaValidationError
@@ -21,216 +23,86 @@ class Persona(BaseEntity):
     and permissions that can be used in test scenarios.
     """
 
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        erpnext_roles: list[str],
-        permissions: Optional[str] = None,
-        is_active: bool = True,
-        id: Optional[UUID] = None,
-        created_at: Optional[datetime] = None,
-        updated_at: Optional[datetime] = None,
-        version: int = 1,
-    ):
-        """Initialize persona entity.
+    # Core persona fields
+    name: str = Field(..., description="Unique name for the persona")
+    description: str = Field(..., description="Description of the persona's purpose")
+    erpnext_roles: list[str] = Field(..., description="List of ERPNext role names")
+    permissions: Optional[str] = Field(default=None, description="Comma-separated permission strings")
+    is_active: bool = Field(default=True, description="Whether the persona is active")
 
-        Args:
-            name: Unique name for the persona
-            description: Description of the persona's purpose
-            erpnext_roles: List of ERPNext role names
-            permissions: Comma-separated permission strings
-            is_active: Whether the persona is active
-            id: Unique identifier (auto-generated if None)
-            created_at: Creation timestamp
-            updated_at: Last update timestamp
-            version: Entity version for optimistic locking
+    @field_validator('name')
+    def validate_name(cls, v):
+        """Validate persona name."""
+        if not v or not v.strip():
+            raise PersonaValidationError("name", "Persona name is required")
 
-        Raises:
-            PersonaValidationError: If validation fails
-        """
-        super().__init__(id, created_at, updated_at, version)
+        v = v.strip()
 
-        self._name: str = ""
-        self._description: str = ""
-        self._erpnext_roles: list[str] = []
-        self._permissions: str = ""
-        self._is_active: bool = True
+        if len(v) < 2:
+            raise PersonaValidationError("name", "Persona name must be at least 2 characters long")
 
-        # Validate and set all fields
-        self.set_name(name)
-        self.set_description(description)
-        self.set_erpnext_roles(erpnext_roles)
-        self.set_permissions(permissions or "")
-        self.set_is_active(is_active)
-
-    @property
-    def name(self) -> str:
-        """Get persona name."""
-        return self._name
-
-    @property
-    def description(self) -> str:
-        """Get persona description."""
-        return self._description
-
-    @property
-    def erpnext_roles(self) -> list[str]:
-        """Get ERPNext roles as list."""
-        return self._erpnext_roles.copy()
-
-    @property
-    def erpnext_roles_str(self) -> str:
-        """Get ERPNext roles as comma-separated string."""
-        return ",".join(self._erpnext_roles)
-
-    @property
-    def permissions(self) -> str:
-        """Get permissions string."""
-        return self._permissions
-
-    @property
-    def permissions_list(self) -> list[str]:
-        """Get permissions as list."""
-        if not self._permissions:
-            return []
-        return [p.strip() for p in self._permissions.split(",") if p.strip()]
-
-    @property
-    def is_active(self) -> bool:
-        """Get active status."""
-        return self._is_active
-
-    def set_name(self, name: str) -> None:
-        """Set persona name with validation.
-
-        Args:
-            name: Persona name
-
-        Raises:
-            PersonaValidationError: If name is invalid
-        """
-        if not name or not name.strip():
-            raise PersonaValidationError("Persona name is required")
-
-        name = name.strip()
-
-        if len(name) < 2:
-            raise PersonaValidationError(
-                "Persona name must be at least 2 characters long"
-            )
-
-        if len(name) > 255:
-            raise PersonaValidationError("Persona name must not exceed 255 characters")
+        if len(v) > 255:
+            raise PersonaValidationError("name", "Persona name must not exceed 255 characters")
 
         # Check for invalid characters (allow letters, numbers, spaces, hyphens, underscores)
-        if not re.match(r"^[a-zA-Z0-9\s\-_]+$", name):
+        if not re.match(r"^[a-zA-Z0-9\s\-_]+$", v):
             raise PersonaValidationError(
+                "name", 
                 "Persona name can only contain letters, numbers, spaces, hyphens, and underscores"
             )
 
-        self._name = name
-        self._mark_as_modified()
+        return v
 
-    def set_description(self, description: str) -> None:
-        """Set persona description with validation.
+    @field_validator('description')
+    def validate_description(cls, v):
+        """Validate persona description."""
+        if not v or not v.strip():
+            raise PersonaValidationError("description", "Persona description is required")
 
-        Args:
-            description: Persona description
+        v = v.strip()
 
-        Raises:
-            PersonaValidationError: If description is invalid
-        """
-        if not description or not description.strip():
-            raise PersonaValidationError("Persona description is required")
+        if len(v) < 10:
+            raise PersonaValidationError("description", "Persona description must be at least 10 characters long")
 
-        description = description.strip()
+        if len(v) > 2000:
+            raise PersonaValidationError("description", "Persona description must not exceed 2000 characters")
 
-        if len(description) < 10:
-            raise PersonaValidationError(
-                "Persona description must be at least 10 characters long"
-            )
+        return v
 
-        if len(description) > 2000:
-            raise PersonaValidationError(
-                "Persona description must not exceed 2000 characters"
-            )
-
-        self._description = description
-        self._mark_as_modified()
-
-    def set_erpnext_roles(self, roles: list[str]) -> None:
-        """Set ERPNext roles with validation.
-
-        Args:
-            roles: List of ERPNext role names
-
-        Raises:
-            PersonaValidationError: If roles are invalid
-        """
-        if not roles:
-            raise PersonaValidationError("At least one ERPNext role is required")
+    @field_validator('erpnext_roles')
+    def validate_erpnext_roles(cls, v):
+        """Validate ERPNext roles."""
+        if not v:
+            raise PersonaValidationError("erpnext_roles", "At least one ERPNext role is required")
 
         # Validate each role
-        validate_erpnext_roles(roles)
+        validate_erpnext_roles(v)
 
         # Remove duplicates while preserving order
         unique_roles = []
         seen = set()
-        for role in roles:
+        for role in v:
             role = role.strip()
             if role and role not in seen:
                 unique_roles.append(role)
                 seen.add(role)
 
         if not unique_roles:
-            raise PersonaValidationError("At least one valid ERPNext role is required")
+            raise PersonaValidationError("erpnext_roles", "At least one valid ERPNext role is required")
 
-        self._erpnext_roles = unique_roles
-        self._mark_as_modified()
+        return unique_roles
 
-    def set_permissions(self, permissions: str) -> None:
-        """Set permissions string with validation.
+    @property
+    def erpnext_roles_str(self) -> str:
+        """Get ERPNext roles as comma-separated string."""
+        return ",".join(self.erpnext_roles)
 
-        Args:
-            permissions: Comma-separated permission strings
-
-        Raises:
-            PersonaValidationError: If permissions format is invalid
-        """
-        if not permissions:
-            self._permissions = ""
-            self._mark_as_modified()
-            return
-
-        permissions = permissions.strip()
-
-        if len(permissions) > 1000:
-            raise PersonaValidationError(
-                "Permissions string must not exceed 1000 characters"
-            )
-
-        # Validate permission format: action:resource or action:*
-        permission_list = [p.strip() for p in permissions.split(",") if p.strip()]
-
-        for permission in permission_list:
-            if not self._is_valid_permission_format(permission):
-                raise PersonaValidationError(
-                    f"Invalid permission format: '{permission}'. "
-                    "Use format 'action:resource' (e.g., 'read:sales', 'write:*')"
-                )
-
-        self._permissions = permissions
-        self._mark_as_modified()
-
-    def set_is_active(self, is_active: bool) -> None:
-        """Set active status.
-
-        Args:
-            is_active: Whether persona is active
-        """
-        self._is_active = bool(is_active)
-        self._mark_as_modified()
+    @property
+    def permissions_list(self) -> list[str]:
+        """Get permissions as list."""
+        if not self.permissions:
+            return []
+        return [p.strip() for p in self.permissions.split(",") if p.strip()]
 
     def add_erpnext_role(self, role: str) -> None:
         """Add an ERPNext role to the persona.
@@ -243,14 +115,14 @@ class Persona(BaseEntity):
         """
         role = role.strip()
         if not role:
-            raise PersonaValidationError("Role name cannot be empty")
+            raise PersonaValidationError("erpnext_roles", "Role name cannot be empty")
 
         # Validate the role
         validate_erpnext_roles([role])
 
-        if role not in self._erpnext_roles:
-            self._erpnext_roles.append(role)
-            self._mark_as_modified()
+        if role not in self.erpnext_roles:
+            self.erpnext_roles.append(role)
+            self.update_timestamp()
 
     def remove_erpnext_role(self, role: str) -> bool:
         """Remove an ERPNext role from the persona.
@@ -264,14 +136,15 @@ class Persona(BaseEntity):
         Raises:
             PersonaValidationError: If removing role would leave persona with no roles
         """
-        if len(self._erpnext_roles) <= 1:
+        if len(self.erpnext_roles) <= 1:
             raise PersonaValidationError(
+                "erpnext_roles",
                 "Cannot remove role - persona must have at least one role"
             )
 
-        if role in self._erpnext_roles:
-            self._erpnext_roles.remove(role)
-            self._mark_as_modified()
+        if role in self.erpnext_roles:
+            self.erpnext_roles.remove(role)
+            self.update_timestamp()
             return True
 
         return False
@@ -287,10 +160,11 @@ class Persona(BaseEntity):
         """
         permission = permission.strip()
         if not permission:
-            raise PersonaValidationError("Permission cannot be empty")
+            raise PersonaValidationError("permissions", "Permission cannot be empty")
 
         if not self._is_valid_permission_format(permission):
             raise PersonaValidationError(
+                "permissions",
                 f"Invalid permission format: '{permission}'. "
                 "Use format 'action:resource' (e.g., 'read:sales', 'write:*')"
             )
@@ -298,8 +172,8 @@ class Persona(BaseEntity):
         current_permissions = self.permissions_list
         if permission not in current_permissions:
             current_permissions.append(permission)
-            self._permissions = ",".join(current_permissions)
-            self._mark_as_modified()
+            self.permissions = ",".join(current_permissions)
+            self.update_timestamp()
 
     def remove_permission(self, permission: str) -> bool:
         """Remove a permission from the persona.
@@ -313,8 +187,8 @@ class Persona(BaseEntity):
         current_permissions = self.permissions_list
         if permission in current_permissions:
             current_permissions.remove(permission)
-            self._permissions = ",".join(current_permissions)
-            self._mark_as_modified()
+            self.permissions = ",".join(current_permissions)
+            self.update_timestamp()
             return True
 
         return False
@@ -356,15 +230,17 @@ class Persona(BaseEntity):
         Returns:
             True if persona has the role
         """
-        return role in self._erpnext_roles
+        return role in self.erpnext_roles
 
     def deactivate(self) -> None:
         """Deactivate the persona."""
-        self.set_is_active(False)
+        self.is_active = False
+        self.update_timestamp()
 
     def activate(self) -> None:
         """Activate the persona."""
-        self.set_is_active(True)
+        self.is_active = True
+        self.update_timestamp()
 
     def get_effective_permissions(self) -> set[str]:
         """Get all effective permissions including role-based permissions.
@@ -375,42 +251,21 @@ class Persona(BaseEntity):
         permissions = set(self.permissions_list)
 
         # Add role-based permissions
-        for role in self._erpnext_roles:
+        for role in self.erpnext_roles:
             role_permissions = ERPNextRole.get_role_permissions(role)
             permissions.update(role_permissions)
 
         return permissions
 
-    def validate(self) -> None:
-        """Validate the entire persona entity.
+    def update_name(self, name: str) -> None:
+        """Update persona name."""
+        self.name = name  # Will trigger validation
+        self.update_timestamp()
 
-        Raises:
-            PersonaValidationError: If validation fails
-        """
-        # Re-validate all fields
-        temp_name = self._name
-        temp_description = self._description
-        temp_roles = self._erpnext_roles.copy()
-        temp_permissions = self._permissions
-
-        # Reset and re-validate to ensure consistency
-        self._name = ""
-        self._description = ""
-        self._erpnext_roles = []
-        self._permissions = ""
-
-        try:
-            self.set_name(temp_name)
-            self.set_description(temp_description)
-            self.set_erpnext_roles(temp_roles)
-            self.set_permissions(temp_permissions)
-        except PersonaValidationError:
-            # Restore original values if validation fails
-            self._name = temp_name
-            self._description = temp_description
-            self._erpnext_roles = temp_roles
-            self._permissions = temp_permissions
-            raise
+    def update_description(self, description: str) -> None:
+        """Update persona description."""
+        self.description = description  # Will trigger validation
+        self.update_timestamp()
 
     def to_dict(self) -> dict:
         """Convert persona to dictionary representation.
@@ -423,7 +278,7 @@ class Persona(BaseEntity):
             "name": self.name,
             "description": self.description,
             "erpnext_roles": self.erpnext_roles_str,
-            "permissions": self.permissions,
+            "permissions": self.permissions or "",
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,

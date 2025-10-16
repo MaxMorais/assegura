@@ -27,22 +27,26 @@ class PersonaValidationError(PersonaDomainError):
 
     def __init__(
         self,
+        field: str,
         message: str,
-        field: Optional[str] = None,
         value: Optional[Any] = None,
         details: Optional[dict[str, Any]] = None,
     ):
         """Initialize persona validation error.
 
         Args:
-            message: Validation error message
             field: Field that failed validation
+            message: Validation error message
             value: Value that caused validation failure
             details: Additional error details
         """
         super().__init__(message, details)
         self.field = field
         self.value = value
+
+    def __str__(self) -> str:
+        """String representation of the error."""
+        return self.message
 
 
 class PersonaNotFoundError(PersonaDomainError):
@@ -163,8 +167,8 @@ class PersonaMultipleValidationError(PersonaDomainError):
         Args:
             errors: List of validation errors
         """
-        messages = [error.message for error in errors]
-        combined_message = "Multiple validation errors: " + "; ".join(messages)
+        field_names = [error.field for error in errors]
+        combined_message = "Multiple validation errors: " + "; ".join(field_names)
         super().__init__(combined_message)
         self.errors = errors
         self.error_count = len(errors)

@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class BaseEntity(BaseModel):
@@ -42,17 +42,15 @@ class BaseEntity(BaseModel):
         default=1, description="Entity version for optimistic concurrency"
     )
 
-    class Config:
-        """Pydantic model configuration."""
-
+    model_config = ConfigDict(
         # Use enum values (not names) for better API compatibility
-        use_enum_values = True
+        use_enum_values=True,
         # Validate assignment to ensure data integrity
-        validate_assignment = True
+        validate_assignment=True,
         # Allow field population by name or alias
-        allow_population_by_field_name = True
+        populate_by_name=True,
         # JSON schema extra options
-        schema_extra = {
+        json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
                 "created_at": "2025-10-15T10:30:00Z",
@@ -60,6 +58,7 @@ class BaseEntity(BaseModel):
                 "version": 1,
             }
         }
+    )
 
     def update_timestamp(self) -> None:
         """Update the modification timestamp.

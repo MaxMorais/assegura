@@ -148,7 +148,7 @@ class SortParams(BaseDTO):
 
     sort_by: Optional[str] = Field(default=None, description="Field to sort by")
     sort_order: str = Field(
-        default="asc", regex="^(asc|desc)$", description="Sort order"
+        default="asc", pattern="^(asc|desc)$", description="Sort order"
     )
 
     @validator("sort_order")

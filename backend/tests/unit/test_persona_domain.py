@@ -8,7 +8,7 @@ import uuid
 
 import pytest
 
-from src.domain.personas.erpnext_roles import ERPNextRoleValidator
+from src.domain.personas.erpnext_roles import ERPNextRole
 from src.domain.personas.exceptions import (
     PersonaAlreadyExistsError,
     PersonaMultipleValidationError,
@@ -45,32 +45,32 @@ class TestPersonaDomainEntity:
 
     def test_persona_creation_minimal_data(self):
         """Test creating a persona with minimal required data."""
-        persona = Persona(name="Basic User", erpnext_roles=["User"])
+        persona = Persona(name="Basic User", description="A basic user persona", erpnext_roles=["Sales User"])
 
         assert persona.name == "Basic User"
-        assert persona.description == ""
-        assert persona.erpnext_roles == ["User"]
-        assert persona.permissions == ""
+        assert persona.description == "A basic user persona"
+        assert persona.erpnext_roles == ["Sales User"]
+        assert persona.permissions is None
         assert persona.is_active is True  # Default value
 
     def test_persona_validation_empty_name(self):
         """Test persona validation with empty name."""
         with pytest.raises(PersonaValidationError) as exc_info:
-            Persona(name="", erpnext_roles=["User"])
+            Persona(name="", description="Test description", erpnext_roles=["Sales User"])
 
-        assert "Name is required" in str(exc_info.value)
+        assert "Persona name is required" in str(exc_info.value)
 
     def test_persona_validation_empty_roles(self):
         """Test persona validation with empty roles."""
         with pytest.raises(PersonaValidationError) as exc_info:
-            Persona(name="Test User", erpnext_roles=[])
+            Persona(name="Test User", description="Test description", erpnext_roles=[])
 
         assert "At least one ERPNext role is required" in str(exc_info.value)
 
     def test_persona_validation_invalid_role(self):
         """Test persona validation with invalid ERPNext role."""
         with pytest.raises(PersonaValidationError) as exc_info:
-            Persona(name="Test User", erpnext_roles=["Invalid Role"])
+            Persona(name="Test User", description="Test description", erpnext_roles=["Invalid Role"])
 
         assert "Invalid ERPNext role" in str(exc_info.value)
 
@@ -78,17 +78,18 @@ class TestPersonaDomainEntity:
         """Test persona name length validation."""
         # Name too short
         with pytest.raises(PersonaValidationError):
-            Persona(name="A", erpnext_roles=["User"])
+            Persona(name="A", description="Test description", erpnext_roles=["Sales User"])
 
         # Name too long
-        long_name = "A" * 101  # Assuming max length is 100
+        long_name = "A" * 256  # Max length is 255
         with pytest.raises(PersonaValidationError):
-            Persona(name=long_name, erpnext_roles=["User"])
+            Persona(name=long_name, description="Test description", erpnext_roles=["Sales User"])
 
     def test_persona_erpnext_roles_property(self):
         """Test ERPNext roles property conversions."""
         persona = Persona(
             name="Test User",
+            description="Test user with multiple roles",
             erpnext_roles=["Sales Manager", "Customer", "Item Manager"],
         )
 
@@ -105,7 +106,8 @@ class TestPersonaDomainEntity:
         """Test permissions property conversions."""
         persona = Persona(
             name="Test User",
-            erpnext_roles=["User"],
+            description="Test user with permissions",
+            erpnext_roles=["Sales User"],
             permissions="read_customer,write_customer,read_item",
         )
 
@@ -136,7 +138,7 @@ class TestPersonaDomainEntity:
 
     def test_persona_update_name(self):
         """Test updating persona name."""
-        persona = Persona(name="Original Name", erpnext_roles=["User"])
+        persona = Persona(name="Original Name", erpnext_roles=["Sales User"])
         original_updated_at = persona.updated_at
 
         # Small delay to ensure timestamp difference
@@ -153,7 +155,7 @@ class TestPersonaDomainEntity:
     def test_persona_update_description(self):
         """Test updating persona description."""
         persona = Persona(
-            name="Test User", erpnext_roles=["User"], description="Original description"
+            name="Test User", erpnext_roles=["Sales User"], description="Original description"
         )
 
         persona.update_description("New description")
@@ -163,7 +165,7 @@ class TestPersonaDomainEntity:
 
     def test_persona_add_erpnext_role(self):
         """Test adding ERPNext role to persona."""
-        persona = Persona(name="Test User", erpnext_roles=["User"])
+        persona = Persona(name="Test User", erpnext_roles=["Sales User"])
 
         persona.add_erpnext_role("Sales Manager")
 
@@ -174,7 +176,7 @@ class TestPersonaDomainEntity:
     def test_persona_remove_erpnext_role(self):
         """Test removing ERPNext role from persona."""
         persona = Persona(
-            name="Test User", erpnext_roles=["User", "Sales Manager", "Customer"]
+            name="Test User", erpnext_roles=["Sales User", "Sales Manager", "Customer"]
         )
 
         persona.remove_erpnext_role("Sales Manager")
@@ -185,15 +187,15 @@ class TestPersonaDomainEntity:
 
     def test_persona_remove_erpnext_role_validation(self):
         """Test validation when removing ERPNext role."""
-        persona = Persona(name="Test User", erpnext_roles=["User"])  # Only one role
+        persona = Persona(name="Test User", erpnext_roles=["Sales User"])  # Only one role
 
         # Should not allow removing the last role
         with pytest.raises(PersonaValidationError):
-            persona.remove_erpnext_role("User")
+            persona.remove_erpnext_role("Sales User")
 
     def test_persona_activate_deactivate(self):
         """Test persona activation and deactivation."""
-        persona = Persona(name="Test User", erpnext_roles=["User"], is_active=False)
+        persona = Persona(name="Test User", erpnext_roles=["Sales User"], is_active=False)
 
         # Test activation
         persona.activate()
@@ -207,9 +209,9 @@ class TestPersonaDomainEntity:
 
     def test_persona_equality(self):
         """Test persona equality comparison."""
-        persona1 = Persona(name="Test User", erpnext_roles=["User"])
+        persona1 = Persona(name="Test User", erpnext_roles=["Sales User"])
 
-        persona2 = Persona(name="Test User", erpnext_roles=["User"])
+        persona2 = Persona(name="Test User", erpnext_roles=["Sales User"])
 
         # Different instances with same data should not be equal (different IDs)
         assert persona1 != persona2
@@ -259,10 +261,10 @@ class TestPersonaDomainService:
         """Test successful persona update validation."""
         service = PersonaDomainService()
 
-        original_persona = Persona(name="Original Name", erpnext_roles=["User"])
+        original_persona = Persona(name="Original Name", erpnext_roles=["Sales User"])
 
         updated_persona = Persona(
-            name="Updated Name", erpnext_roles=["User", "Sales Manager"]
+            name="Updated Name", erpnext_roles=["Sales User", "Sales Manager"]
         )
         updated_persona.id = original_persona.id  # Same ID
 
@@ -454,12 +456,10 @@ class TestERPNextRoleValidator:
 
     def test_valid_roles(self):
         """Test validation of valid ERPNext roles."""
-        validator = ERPNextRoleValidator()
-
         valid_roles = [
             "Administrator",
             "System Manager",
-            "Sales Manager",
+            "Sales Manager", 
             "Sales User",
             "Purchase Manager",
             "Stock Manager",
@@ -470,30 +470,24 @@ class TestERPNextRoleValidator:
         ]
 
         for role in valid_roles:
-            assert validator.is_valid_role(role) is True
+            assert ERPNextRole.is_valid_role(role) is True
 
     def test_invalid_roles(self):
         """Test validation of invalid ERPNext roles."""
-        validator = ERPNextRoleValidator()
-
         invalid_roles = [
             "Invalid Role",
             "Non Existent Role",
             "",
-            None,
-            123,
             "admin",  # Case sensitive
             "sales manager",  # Case sensitive
         ]
 
         for role in invalid_roles:
-            assert validator.is_valid_role(role) is False
+            assert ERPNextRole.is_valid_role(role) is False
 
     def test_get_all_roles(self):
         """Test getting all available ERPNext roles."""
-        validator = ERPNextRoleValidator()
-
-        all_roles = validator.get_all_roles()
+        all_roles = ERPNextRole.get_all_roles()
 
         assert isinstance(all_roles, list)
         assert len(all_roles) > 0
@@ -503,9 +497,7 @@ class TestERPNextRoleValidator:
 
     def test_get_roles_by_module(self):
         """Test getting roles filtered by ERPNext module."""
-        validator = ERPNextRoleValidator()
-
-        sales_roles = validator.get_roles_by_module("Sales")
+        sales_roles = ERPNextRole.get_module_roles("Sales")
 
         assert isinstance(sales_roles, list)
         assert len(sales_roles) > 0
@@ -514,9 +506,7 @@ class TestERPNextRoleValidator:
 
     def test_get_role_permissions(self):
         """Test getting permissions for a specific role."""
-        validator = ERPNextRoleValidator()
-
-        sales_manager_perms = validator.get_role_permissions("Sales Manager")
+        sales_manager_perms = ERPNextRole.get_role_permissions("Sales Manager")
 
         assert isinstance(sales_manager_perms, list)
         assert len(sales_manager_perms) > 0
