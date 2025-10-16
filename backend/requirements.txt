@@ -1,0 +1,63 @@
+# Core Framework Dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database & ORM
+sqlalchemy==2.0.23
+alembic==1.13.1
+psycopg2-binary==2.9.9
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# HTTP Client for ERPNext API
+httpx==0.25.2
+aiohttp==3.9.1
+
+# Background Tasks & Queue
+celery==5.3.4
+redis==5.0.1
+
+# Data Validation & Serialization
+email-validator==2.1.0
+python-dateutil==2.8.2
+
+# Configuration & Environment
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Logging & Monitoring
+structlog==23.2.0
+prometheus-client==0.19.0
+
+# Development Dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+black==23.11.0
+ruff==0.1.6
+mypy==1.7.1
+
+# Testing Dependencies
+httpx==0.25.2  # For API testing
+faker==20.1.0  # For test data generation
+factory-boy==3.3.0  # For model factories
+
+# Robot Framework (MANDATORY per constitution)
+robotframework==6.1.1
+robotframework-requests==0.9.4
+robotframework-databaselibrary==1.2.4
+robotframework-seleniumlibrary==6.2.0
+
+# Docker Support
+gunicorn==21.2.0
+
+# Type Checking
+types-python-dateutil==2.8.19.14
+types-pyyaml==6.0.12.12
+types-redis==4.6.0.11
