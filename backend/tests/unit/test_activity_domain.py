@@ -76,9 +76,9 @@ class TestActivityEntity:
 
         # Test name too long
         with pytest.raises(ActivityValidationError) as exc_info:
-            Activity(**{**valid_activity_data, "name": "x" * 256})
+            Activity(**{**valid_activity_data, "name": "x" * 101})
         assert "name" in str(exc_info.value)
-        assert "255" in str(exc_info.value)
+        assert "100" in str(exc_info.value)
 
     def test_activity_description_validation(self, valid_activity_data: dict[str, Any]):
         """Test activity description validation."""

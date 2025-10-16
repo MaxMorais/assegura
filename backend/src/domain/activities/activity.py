@@ -28,16 +28,26 @@ class ActivityActionType(Enum):
     READ = "read"
     UPDATE = "update"
     DELETE = "delete"
+    LIST = "list"
     SEARCH = "search"
+    FILTER = "filter"
     REPORT = "report"
     EXPORT = "export"
     IMPORT = "import"
     APPROVE = "approve"
+    REJECT = "reject"
     CANCEL = "cancel"
     SUBMIT = "submit"
     DUPLICATE = "duplicate"
     PRINT = "print"
     EMAIL = "email"
+    SHARE = "share"
+    ASSIGN = "assign"
+    COMMENT = "comment"
+    ATTACHMENT = "attachment"
+    WORKFLOW = "workflow"
+    PERMISSION = "permission"
+    CUSTOM = "custom"
 
 
 class ActivityComplexity(Enum):
@@ -170,7 +180,7 @@ class Activity:
         id: Optional[uuid.UUID] = None,
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None,
-        version: int = 1,
+        version: str = "1.0.0",
     ):
         """Initialize an Activity entity."""
         self.id = id or uuid.uuid4()
@@ -218,6 +228,16 @@ class Activity:
                 ActivityValidationError("name", "Name cannot exceed 100 characters")
             )
 
+        # Validate description
+        if not self.description or not self.description.strip():
+            errors.append(
+                ActivityValidationError("description", "Description is required and cannot be empty")
+            )
+        elif len(self.description.strip()) > 2000:
+            errors.append(
+                ActivityValidationError("description", "Description cannot exceed 2000 characters")
+            )
+
         # Validate ERPNext module
         if not ERPNextModuleValidator.is_valid_module(self.erpnext_module):
             errors.append(ActivityInvalidModuleError(self.erpnext_module))
@@ -234,6 +254,19 @@ class Activity:
             errors.append(
                 ActivityValidationError("target_doctype", "Target DocType is required")
             )
+        elif len(self.target_doctype.strip()) > 100:
+            errors.append(
+                ActivityValidationError("target_doctype", "Target DocType cannot exceed 100 characters")
+            )
+
+        # Validate version format (semantic versioning)
+        if self.version is not None:  # Check for None, but allow empty string to be validated
+            import re
+            version_pattern = r'^\d+\.\d+\.\d+$'
+            if not re.match(version_pattern, self.version):
+                errors.append(
+                    ActivityValidationError("version", "Version must follow semantic versioning format (x.y.z)")
+                )
 
         # Validate complexity score
         if (
