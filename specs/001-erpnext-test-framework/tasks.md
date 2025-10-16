@@ -113,7 +113,7 @@
 
 ### API Layer
 - [x] T052 [US2] Implement activity REST endpoints in backend/src/api/activities/activity_routes.py
-- [ ] T053 [P] [US2] Implement nested persona-activities endpoints in backend/src/api/personas/persona_activity_routes.py
+- [x] T053 [P] [US2] Implement nested persona-activities endpoints in backend/src/api/personas/persona_activity_routes.py
 
 ### UI Layer  
 - [x] T054 [US2] Create activity form components in frontend/src/components/activity_forms/activity_form.py
