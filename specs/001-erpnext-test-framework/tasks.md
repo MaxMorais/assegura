@@ -136,14 +136,14 @@
 - [x] T061 [US3] Create Robot Framework test suite for action library integration in backend/tests/contract/test_action_library.robot
 
 ### Domain Layer - Action Library
-- [ ] T062 [US3] Implement Action Library domain entity in backend/src/domain/actions/action_library.py
-- [ ] T063 [P] [US3] Create Given/When/Then action classifications in backend/src/domain/actions/action_types.py
-- [ ] T064 [P] [US3] Implement action parameter and output structures in backend/src/domain/actions/action_schemas.py
+- [x] T062 [US3] Implement Action Library domain entity in backend/src/domain/actions/action_library.py
+- [x] T063 [P] [US3] Create Given/When/Then action classifications in backend/src/domain/actions/action_types.py
+- [x] T064 [P] [US3] Implement action parameter and output structures in backend/src/domain/actions/parameter_structures.py
 
 ### Domain Layer - Journey  
-- [ ] T065 [US3] Implement Journey domain entity with step sequencing in backend/src/domain/journeys/journey.py
-- [ ] T066 [P] [US3] Create journey validation rules and business logic in backend/src/domain/journeys/journey_service.py
-- [ ] T067 [P] [US3] Implement journey-action relationships in backend/src/domain/journeys/journey_steps.py
+- [x] T065 [US3] Implement Journey domain entity with step sequencing in backend/src/domain/journeys/enhanced_journey.py
+- [x] T066 [P] [US3] Create journey validation rules and business logic in backend/src/domain/journeys/journey_validator.py
+- [x] T067 [P] [US3] Implement journey-action relationships in backend/src/domain/journeys/journey_action_service.py
 
 ### Application Layer
 - [ ] T068 [US3] Create Journey DTO schemas for API requests/responses in backend/src/application/dto/journey_schemas.py
