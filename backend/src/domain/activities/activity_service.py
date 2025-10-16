@@ -763,3 +763,157 @@ class ActivityService:
             dependencies[activity.id] = deps
 
         return dependencies
+
+    # Test-compatible method aliases and new methods
+
+    def validate_activity_configuration(self, activity: Activity) -> dict[str, Any]:
+        """Validate activity configuration and return result dictionary."""
+        errors = []
+        warnings = []
+
+        # Check required fields
+        if not activity.required_fields:
+            warnings.append("No required fields defined")
+
+        # Check success criteria
+        if not activity.success_criteria:
+            warnings.append("No success criteria defined")
+
+        # Check validation rules
+        if not activity.validation_rules:
+            warnings.append("No validation rules defined")
+
+        # Check test data requirements
+        if not activity.test_data_requirements:
+            warnings.append("No test data requirements defined")
+
+        return {
+            "is_valid": len(errors) == 0,
+            "errors": errors,
+            "warnings": warnings
+        }
+
+    def calculate_compatibility(self, activity1: Activity, activity2: Activity) -> dict[str, Any]:
+        """Calculate compatibility between two activities - test compatible version."""
+        result = self.calculate_activity_compatibility(activity1, activity2)
+        
+        return {
+            "compatible": result.compatibility_score > 0.5,
+            "compatibility_score": result.compatibility_score,
+            "reasons": result.reasons,
+            "suggestions": result.suggestions
+        }
+
+    def suggest_similar_activities(self, activity: Activity, candidates: list[Activity], min_similarity: float = 0.3) -> list[dict[str, Any]]:
+        """Suggest similar activities from a pool of candidates."""
+        suggestions = []
+        
+        for candidate in candidates:
+            similarity = self.calculate_activity_compatibility(activity, candidate)
+            if similarity.compatibility_score >= min_similarity:
+                suggestions.append({
+                    "activity": candidate,
+                    "similarity_score": similarity.compatibility_score,
+                    "reasons": similarity.reasons
+                })
+        
+        # Sort by compatibility score (descending)
+        suggestions.sort(key=lambda s: s["similarity_score"], reverse=True)
+        return suggestions
+
+    def analyze_activity_relationships(self, activities: list[Activity]) -> list[dict[str, Any]]:
+        """Analyze relationships between activities."""
+        relationships = []
+        
+        for i, activity1 in enumerate(activities):
+            for j, activity2 in enumerate(activities[i+1:], i+1):
+                # Check if activity1 postconditions match activity2 prerequisites
+                prereq_matches = []
+                for prereq in activity2.prerequisites:
+                    for postcond in activity1.postconditions:
+                        # More flexible matching - check for common words
+                        prereq_words = set(prereq.lower().split())
+                        postcond_words = set(postcond.lower().split())
+                        
+                        # Find common meaningful words (skip common words)
+                        common_words = prereq_words & postcond_words
+                        common_words -= {'the', 'a', 'an', 'is', 'are', 'and', 'or', 'of', 'to', 'in', 'on', 'at', 'for'}
+                        
+                        if common_words or prereq.lower() in postcond.lower() or postcond.lower() in prereq.lower():
+                            prereq_matches.append((prereq, postcond))
+                
+                if prereq_matches:
+                    relationships.append({
+                        "from_activity_name": activity1.name,
+                        "to_activity_name": activity2.name,
+                        "relationship_type": "prerequisite",
+                        "matches": prereq_matches
+                    })
+        
+        return relationships
+
+    def generate_execution_context(self, activity: Activity) -> dict[str, Any]:
+        """Generate execution context for an activity."""
+        return {
+            "activity_id": str(activity.id),
+            "required_fields": activity.required_fields,
+            "validation_rules": activity.validation_rules,
+            "success_criteria": activity.success_criteria,
+            "test_data": activity.test_data_requirements,
+            "metadata": {
+                "module": activity.erpnext_module,
+                "doctype": activity.target_doctype,
+                "action": activity.action_type,
+                "prerequisites": activity.prerequisites,
+                "expected_duration": activity.estimated_duration,
+                "complexity_level": activity.complexity_score
+            }
+        }
+
+    def check_prerequisite_satisfaction(self, activity: Activity, state: dict[str, Any]) -> dict[str, Any]:
+        """Check if prerequisites are satisfied given current state."""
+        satisfied_prereqs = []
+        missing_prereqs = []
+        
+        for prereq in activity.prerequisites:
+            # Simple matching logic - check if prerequisite key exists and is True
+            prereq_key = prereq.lower().replace(" ", "_")
+            if state.get(prereq_key, False):
+                satisfied_prereqs.append(prereq)
+            else:
+                missing_prereqs.append(prereq)
+        
+        all_satisfied = len(missing_prereqs) == 0
+        
+        return {
+            "satisfied": all_satisfied,
+            "satisfied_prerequisites": satisfied_prereqs,
+            "missing_prerequisites": missing_prereqs,
+            "satisfaction_ratio": len(satisfied_prereqs) / len(activity.prerequisites) if activity.prerequisites else 1.0
+        }
+
+    def estimate_execution_time(self, activity: Activity) -> dict[str, Any]:
+        """Estimate execution time for an activity."""
+        base_time = activity.estimated_duration
+        
+        # Adjust based on complexity
+        complexity_multiplier = 1 + (activity.complexity_score - 3) * 0.2  # Scale around complexity 3
+        
+        # Adjust based on number of required fields
+        field_overhead = len(activity.required_fields) * 5  # 5 seconds per field
+        
+        # Adjust based on validation rules complexity
+        validation_overhead = len(activity.validation_rules) * 10  # 10 seconds per rule
+        
+        estimated_time = base_time * complexity_multiplier + field_overhead + validation_overhead
+        
+        return {
+            "base_duration": base_time,
+            "adjusted_duration": int(estimated_time),
+            "factors": {
+                "complexity_multiplier": complexity_multiplier,
+                "field_overhead": field_overhead,
+                "validation_overhead": validation_overhead
+            },
+            "confidence_level": 0.8  # 80% confidence in estimation
+        }
