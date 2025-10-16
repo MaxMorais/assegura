@@ -16,7 +16,7 @@ python-multipart==0.0.6
 
 # HTTP Client for ERPNext API
 httpx==0.25.2
-aiohttp==3.9.1
+aiohttp==3.12.14
 
 # Background Tasks & Queue
 celery==5.3.4
