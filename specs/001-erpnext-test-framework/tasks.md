@@ -194,7 +194,7 @@
 ### Domain Layer - Test Generation
 - [x] T094 [US4] Implement Test Suite domain entity in backend/src/domain/test_generation/test_suite.py
 - [x] T095 [P] [US4] Create Robot Framework code generation engine in backend/src/domain/test_generation/robot_generator.py
-- [ ] T096 [P] [US4] Implement test data generation logic in backend/src/domain/test_generation/test_data_generator.py
+- [x] T096 [P] [US4] Implement test data generation logic in backend/src/domain/test_generation/test_data_generator.py
 
 ### Domain Layer - Test Data Management
 - [ ] T097 [US4] Implement Test Data Set domain entity in backend/src/domain/test_data/test_data_set.py
