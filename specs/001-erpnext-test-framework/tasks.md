@@ -79,7 +79,7 @@
 - [x] T034 [P] [US1] Create persona API client service in frontend/src/services/persona_service.py
 
 ### Integration Tests
-- [ ] T035 [US1] Create integration tests for persona API endpoints in backend/tests/integration/test_persona_api.py
+- [x] T035 [US1] Create integration tests for persona API endpoints in backend/tests/integration/test_persona_api.py
 - [x] T036 [P] [US1] Create unit tests for persona domain logic in backend/tests/unit/test_persona_domain.py
 
 ## Phase 4: User Story 2 - Define Business Activities (P2)
