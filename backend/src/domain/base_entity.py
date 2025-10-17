@@ -223,7 +223,16 @@ class DomainService:
     pass
 
 
-class Repository:
+from typing import Any, Generic, Optional, Protocol, TypeVar
+from uuid import UUID, uuid4
+
+from pydantic import BaseModel, Field, ConfigDict
+
+# Type variables for domain entities
+EntityType = TypeVar("EntityType", bound="AggregateRoot")
+
+
+class Repository(Protocol, Generic[EntityType]):
     """Base repository interface following DDD patterns.
 
     Repositories provide collection-like interface for
@@ -231,7 +240,7 @@ class Repository:
     mechanism from the domain layer.
     """
 
-    async def save(self, entity: AggregateRoot) -> AggregateRoot:
+    async def save(self, entity: EntityType) -> EntityType:
         """Save an aggregate root.
 
         Args:
@@ -240,9 +249,9 @@ class Repository:
         Returns:
             Saved entity with updated version
         """
-        raise NotImplementedError
+        ...
 
-    async def find_by_id(self, entity_id: UUID) -> Optional[AggregateRoot]:
+    async def find_by_id(self, entity_id: UUID) -> Optional[EntityType]:
         """Find aggregate root by ID.
 
         Args:
@@ -251,12 +260,12 @@ class Repository:
         Returns:
             Found entity or None
         """
-        raise NotImplementedError
+        ...
 
-    async def delete(self, entity: AggregateRoot) -> None:
+    async def delete(self, entity: EntityType) -> None:
         """Delete an aggregate root.
 
         Args:
             entity: Aggregate root to delete
         """
-        raise NotImplementedError
+        ...

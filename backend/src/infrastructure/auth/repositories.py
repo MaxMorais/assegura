@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 from uuid import UUID
 
-from ...domain.base import Repository
+from src.domain.base_entity import Repository
 from .models import Consultant, ConsultantRole, Tenant, TenantStatus
 
 

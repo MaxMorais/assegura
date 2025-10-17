@@ -13,10 +13,10 @@ try:
 except ImportError as e:
     print(f"SQLAlchemy dependencies not installed: {e}")
 
-from ...auth.models import Consultant, ConsultantRole, Tenant, TenantStatus
-from ...auth.repositories import ConsultantRepository as ConsultantRepositoryInterface
-from ...auth.repositories import TenantRepository as TenantRepositoryInterface
-from ..base import BaseRepository, MultiTenantRepository
+from src.infrastructure.auth.models import Consultant, ConsultantRole, Tenant, TenantStatus
+from src.infrastructure.auth.repositories import ConsultantRepository as ConsultantRepositoryInterface
+from src.infrastructure.auth.repositories import TenantRepository as TenantRepositoryInterface
+from .base import BaseRepository, MultiTenantRepository
 
 
 # Placeholder SQLAlchemy models (will be implemented in subsequent tasks)

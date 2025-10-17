@@ -9,7 +9,7 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
-from ...database.models import Base
+from .base import Base
 
 
 class PersonaModel(Base):

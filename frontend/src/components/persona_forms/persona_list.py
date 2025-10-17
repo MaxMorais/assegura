@@ -368,7 +368,7 @@ class PersonaListComponent:
         with col1:
             selection = self.list_state.get_selection()
             select_all = st.checkbox(
-                "", value=selection.get("select_all", False), key="select_all_personas"
+                "Select all personas", value=selection.get("select_all", False), key="select_all_personas", label_visibility="hidden"
             )
             if select_all != selection.get("select_all", False):
                 new_selection = {"select_all": select_all}
@@ -403,7 +403,7 @@ class PersonaListComponent:
             with col1:
                 # Selection checkbox
                 is_selected = persona["id"] in selected_ids
-                selected = st.checkbox("", value=is_selected, key=f"select_persona_{i}")
+                selected = st.checkbox(f"Select {persona['name']}", value=is_selected, key=f"select_persona_{i}", label_visibility="hidden")
 
                 if selected != is_selected:
                     new_selected = selected_ids.copy()

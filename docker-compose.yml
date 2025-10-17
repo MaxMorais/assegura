@@ -55,6 +55,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       DEBUG: true
       LOG_LEVEL: INFO
+      PYTHONPATH: /app/src
     ports:
       - "8000:8000"
     volumes:
@@ -89,6 +90,7 @@ services:
       DB_PASSWORD: postgres
       REDIS_URL: redis://redis:6379/0
       LOG_LEVEL: INFO
+      PYTHONPATH: /app/src
     volumes:
       - ./backend:/app
       - backend_logs:/app/logs

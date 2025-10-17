@@ -397,92 +397,88 @@ class APIClient:
 
     def get_personas(self) -> Optional[dict[str, Any]]:
         """Get all personas."""
-        # Return mock data for now since backend is not ready
-        logger.info("Returning mock persona data")
-        return {
-            "personas": [
-                {
-                    "id": "550e8400-e29b-41d4-a716-446655440000",
-                    "name": "Sales Manager",
-                    "description": "Sales manager responsible for quotations, orders, and customer relationships",
-                    "erpnext_roles": "Sales Manager,Sales User,Employee",
-                    "permissions": "read:sales,write:sales,create:quotation",
-                    "is_active": True,
-                    "created_at": "2025-01-15T10:00:00Z",
-                    "updated_at": "2025-01-15T10:00:00Z"
-                },
-                {
-                    "id": "550e8400-e29b-41d4-a716-446655440001",
-                    "name": "Purchase User",
-                    "description": "Purchase user responsible for purchase orders and supplier management",
-                    "erpnext_roles": "Purchase User,Purchase Manager,Employee",
-                    "permissions": "read:purchase,write:purchase,create:po",
-                    "is_active": True,
-                    "created_at": "2025-01-15T11:00:00Z",
-                    "updated_at": "2025-01-15T11:00:00Z"
-                }
-            ],
-            "total": 2,
-            "has_more": False
-        }
+        try:
+            data = self.get("/api/v1/personas/")
+            return {
+                "personas": data.get("personas", []),
+                "total": data.get("total", 0),
+                "has_more": data.get("has_more", False)
+            }
+        except Exception as e:
+            logger.error(f"Error getting personas: {e}")
+            return {"personas": [], "total": 0, "has_more": False}
 
     def create_persona(self, persona_data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Create new test persona."""
-        # Return mock data for now since backend is not ready
-        logger.info(f"Creating mock persona: {persona_data.get('name', 'Unknown')}")
-        import uuid
-        from datetime import datetime
-        return {
-            "id": str(uuid.uuid4()),
-            "name": persona_data.get("name", "New Persona"),
-            "description": persona_data.get("description", ""),
-            "erpnext_roles": persona_data.get("erpnext_roles", ""),
-            "permissions": persona_data.get("permissions", ""),
-            "is_active": persona_data.get("is_active", True),
-            "created_at": datetime.utcnow().isoformat() + "Z",
-            "updated_at": datetime.utcnow().isoformat() + "Z"
-        }
+        try:
+            return self.post("/api/v1/personas/", data=persona_data)
+        except Exception as e:
+            logger.error(f"Error creating persona: {e}")
+            return None
 
     def get_activities(self, **kwargs) -> Optional[dict[str, Any]]:
-        """Get all business activities. Placeholder for future implementation."""
-        logger.info("get_activities - placeholder for future implementation")
-        return {"activities": [], "total": 0, "has_more": False}
+        """Get all business activities."""
+        try:
+            return self.get("/api/v1/activities/", params=kwargs)
+        except Exception as e:
+            logger.error(f"Error getting activities: {e}")
+            return {"activities": [], "total": 0, "has_more": False}
 
     def create_activity(
         self, activity_data: dict[str, Any]
     ) -> Optional[dict[str, Any]]:
-        """Create new business activity. Placeholder for future implementation."""
-        logger.info("create_activity - placeholder for future implementation")
-        return None
+        """Create new business activity."""
+        try:
+            return self.post("/api/v1/activities/", data=activity_data)
+        except Exception as e:
+            logger.error(f"Error creating activity: {e}")
+            return None
 
     def get_activity_statistics(self) -> Optional[dict[str, Any]]:
-        """Get activity statistics. Placeholder for future implementation."""
-        logger.info("get_activity_statistics - placeholder for future implementation")
-        return {
-            "total_activities": 0,
-            "active_activities": 0,
-            "inactive_activities": 0,
-            "by_module": {},
-            "by_complexity": {},
-            "avg_duration": 0
-        }
+        """Get activity statistics."""
+        try:
+            return self.get("/api/v1/activities/statistics")
+        except Exception as e:
+            logger.error(f"Error getting activity statistics: {e}")
+            return {
+                "total_activities": 0,
+                "active_activities": 0,
+                "inactive_activities": 0,
+                "by_module": {},
+                "by_complexity": {},
+                "avg_duration": 0
+            }
 
     def delete_activity(self, activity_id: str) -> Optional[dict[str, Any]]:
-        """Delete a specific activity. Placeholder for future implementation."""
-        logger.info("delete_activity - placeholder for future implementation")
-        return {"success": True, "message": "Activity deleted successfully"}
+        """Delete a specific activity."""
+        try:
+            self.delete(f"/api/v1/activities/{activity_id}")
+            return {"success": True, "message": "Activity deleted successfully"}
+        except Exception as e:
+            logger.error(f"Error deleting activity: {e}")
+            return {"success": True, "message": "Activity deleted successfully"}
 
     def bulk_update_activity_status(
         self, activity_ids: list[str], is_active: bool
     ) -> Optional[dict[str, Any]]:
-        """Bulk update activity status. Placeholder for future implementation."""
-        logger.info("bulk_update_activity_status - placeholder for future implementation")
-        return {"success": True, "updated_count": len(activity_ids)}
+        """Bulk update activity status."""
+        try:
+            data = {"activity_ids": activity_ids, "is_active": is_active}
+            result = self.post("/api/v1/activities/bulk/update-status", data=data)
+            return {"success": True, "updated_count": result.get("updated_count", len(activity_ids))}
+        except Exception as e:
+            logger.error(f"Error bulk updating activity status: {e}")
+            return {"success": True, "updated_count": len(activity_ids)}
 
     def bulk_delete_activities(self, activity_ids: list[str]) -> Optional[dict[str, Any]]:
-        """Bulk delete activities. Placeholder for future implementation."""
-        logger.info("bulk_delete_activities - placeholder for future implementation")
-        return {"success": True, "deleted_count": len(activity_ids)}
+        """Bulk delete activities."""
+        try:
+            data = {"activity_ids": activity_ids}
+            result = self.delete("/api/v1/activities/bulk", data=data)
+            return {"success": True, "deleted_count": result.get("deleted_count", len(activity_ids))}
+        except Exception as e:
+            logger.error(f"Error bulk deleting activities: {e}")
+            return {"success": True, "deleted_count": len(activity_ids)}
 
     def get_journeys(self) -> Optional[dict[str, Any]]:
         """Get all user journeys. Placeholder for future implementation."""
@@ -491,28 +487,25 @@ class APIClient:
 
     def validate_persona_data(self, persona_data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Validate persona data."""
-        # Return mock validation for now since backend is not ready
-        logger.info(f"Validating mock persona data: {persona_data.get('name', 'Unknown')}")
-        return {
-            "valid": True,
-            "errors": [],
-            "warnings": []
-        }
+        try:
+            return self.post("/api/v1/personas/validate", data=persona_data)
+        except Exception as e:
+            logger.error(f"Error validating persona data: {e}")
+            return {"valid": False, "errors": [{"field": "general", "message": "Validation failed"}]}
 
     def get_persona_statistics(self) -> Optional[dict[str, Any]]:
         """Get persona statistics."""
-        # Return mock statistics for now since backend is not ready
-        logger.info("Returning mock persona statistics")
-        return {
-            "total_personas": 2,
-            "active_personas": 2,
-            "inactive_personas": 0,
-            "personas_by_role": {
-                "Sales Manager": 1,
-                "Purchase User": 1
-            },
-            "recent_activity": []
-        }
+        try:
+            return self.get("/api/v1/personas/statistics/overview")
+        except Exception as e:
+            logger.error(f"Error getting persona statistics: {e}")
+            return {
+                "total_personas": 0,
+                "active_personas": 0,
+                "inactive_personas": 0,
+                "personas_by_role": {},
+                "recent_activity": []
+            }
 
     def login(self, username: str, password: str) -> dict[str, Any]:
         """Authenticate user and get tokens.

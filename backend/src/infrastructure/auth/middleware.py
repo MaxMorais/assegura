@@ -5,6 +5,7 @@ access control for the ERPNext Test Automation Meta-Framework API.
 """
 
 from typing import Any, Optional
+from uuid import UUID
 
 try:
     from fastapi import Depends, HTTPException, Request, status
@@ -245,6 +246,7 @@ def create_auth_dependencies(
 
     return {
         "get_current_user": middleware.get_current_user,
+        "get_current_consultant_id": middleware.get_current_consultant_id,
         "require_admin": middleware.require_role(ConsultantRole.ADMIN),
         "require_consultant": middleware.require_role(ConsultantRole.CONSULTANT),
         "require_viewer": middleware.require_role(ConsultantRole.VIEWER),
@@ -260,3 +262,25 @@ def create_auth_dependencies(
         "can_write_tests": middleware.require_permission("tests", "write"),
         "can_execute_tests": middleware.require_permission("tests", "execute"),
     }
+
+
+# Standalone dependency function for getting current consultant ID
+async def get_current_consultant_id(
+    current_user: tuple[Consultant, Tenant] = Depends(lambda: None if "Depends" not in globals() else None)
+) -> UUID:
+    """Get current consultant ID from authenticated user.
+
+    Args:
+        current_user: Tuple of (consultant, tenant) from authentication
+
+    Returns:
+        Consultant UUID
+    """
+    if not current_user:
+        # For development/testing, return a mock consultant ID
+        # In production, this should be properly implemented with authentication
+        from uuid import uuid4
+        return uuid4()
+
+    consultant, tenant = current_user
+    return consultant.id

@@ -16,7 +16,7 @@ try:
 except ImportError as e:
     print(f"SQLAlchemy dependencies not installed: {e}")
 
-from ...domain.base_entity import AggregateRoot as Entity, Repository
+from src.domain.base_entity import AggregateRoot as Entity, Repository
 
 # Type variables for generic repository implementations
 EntityType = TypeVar("EntityType", bound=Entity)

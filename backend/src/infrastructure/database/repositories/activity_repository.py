@@ -12,12 +12,12 @@ from sqlalchemy import and_, asc, desc, func, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from ...domain.activities.activity import Activity
-from ...domain.activities.activity_repository import (
+from src.domain.activities.activity import Activity
+from src.domain.activities.activity_repository import (
     ActivityPersonaLinkRepository,
     ActivityRepository,
 )
-from ...domain.activities.exceptions import (
+from src.domain.activities.exceptions import (
     ActivityAlreadyExistsError,
     ActivityNotFoundError,
     ActivityPersonaLinkAlreadyExistsError,

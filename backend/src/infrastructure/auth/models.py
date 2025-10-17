@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 
-from ...domain.base import AggregateRoot, Entity, ValueObject
+from src.domain.base_entity import AggregateRoot, AggregateRoot as Entity, ValueObject
 
 
 class ConsultantRole(str, Enum):

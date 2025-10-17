@@ -11,7 +11,7 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
-from ..base_entity import BaseEntity
+from src.domain.base_entity import BaseEntity
 from .erpnext_roles import ERPNextRole, validate_erpnext_roles
 from .exceptions import PersonaValidationError
 

@@ -11,7 +11,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
-from ...application.dto.persona_schemas import (
+from src.application.dto.persona_schemas import (
     PersonaCreateRequest,
     PersonaListResponse,
     PersonaResponse,
@@ -23,14 +23,14 @@ from ...application.dto.persona_schemas import (
     PersonaUpdateRequest,
     PersonaValidationResponse,
 )
-from ...application.services.persona_service import PersonaService
-from ...domain.personas.exceptions import (
+from src.application.services.persona_service import PersonaService
+from src.domain.personas.exceptions import (
     PersonaAlreadyExistsError,
     PersonaMultipleValidationError,
     PersonaNotFoundError,
     PersonaValidationError,
 )
-from ...infrastructure.auth.middleware import get_current_consultant_id
+from src.infrastructure.auth.middleware import get_current_consultant_id
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +40,11 @@ router = APIRouter(prefix="/personas", tags=["personas"])
 def get_persona_service() -> PersonaService:
     """Dependency injection for PersonaService."""
     # This will be properly configured with DI container in production
-    from ...infrastructure.database.config import get_database_session
-    from ...infrastructure.database.repositories.persona_repository import (
+    from src.infrastructure.database.config import get_database_session
+    from src.infrastructure.database.repositories.persona_repository import (
         PersonaRepository,
     )
-    from ...infrastructure.database.repositories.unit_of_work import UnitOfWork
+    from src.infrastructure.database.repositories.unit_of_work import UnitOfWork
 
     session = get_database_session()
     repository = PersonaRepository(session)

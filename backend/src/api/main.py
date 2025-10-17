@@ -24,8 +24,8 @@ except ImportError as e:
 
 from sqlalchemy import text
 
-from ..application.dto import ErrorResponse, HealthResponse, ValidationErrorResponse
-from ..infrastructure.database import db_manager
+from src.application.dto import ErrorResponse, HealthResponse, ValidationErrorResponse
+from src.infrastructure.database import db_manager
 
 # Configure logging
 logging.basicConfig(
@@ -272,10 +272,14 @@ def _configure_routes(app: "FastAPI") -> None:
 
     # Add route includes for domain modules
     try:
-        from .activities import activities_router
-
+        from .activities import router as activities_router
+        logger.info("About to include activities router")
         app.include_router(activities_router, prefix="/api/v1")
-    except ImportError:
+        logger.info("Activities router included successfully")
+    except Exception as e:
+        logger.error(f"Failed to include activities router: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         pass  # Activities module not ready yet
 
     try:
@@ -285,6 +289,8 @@ def _configure_routes(app: "FastAPI") -> None:
         logger.info("Personas router included successfully")
     except ImportError as e:
         logger.warning(f"Personas module not ready yet: {e}")
+        import traceback
+        logger.error(f"Full traceback for personas import: {traceback.format_exc()}")
         # Try to import with minimal dependencies
         try:
             # Import just the router definition without dependencies

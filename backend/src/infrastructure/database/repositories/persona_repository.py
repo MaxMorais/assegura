@@ -13,12 +13,12 @@ from sqlalchemy import and_, asc, desc, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from ....domain.personas import (
-    Persona,
+from src.domain.personas.persona import Persona
+from src.domain.personas.exceptions import (
     PersonaAlreadyExistsError,
     PersonaConcurrencyError,
 )
-from ....domain.personas.persona_repository import PersonaRepository
+from src.domain.personas.persona_repository import PersonaRepository
 from ..models.persona_model import PersonaModel
 
 logger = logging.getLogger(__name__)

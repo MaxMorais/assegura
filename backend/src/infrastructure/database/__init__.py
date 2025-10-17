@@ -156,7 +156,7 @@ class DatabaseManager:
         if self._sync_engine:
             self._sync_engine.dispose()
         if self._async_engine:
-            self._async_engine.sync_close()
+            self._async_engine.dispose()
         logger.info("Closed all database connections")
 
 

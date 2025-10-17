@@ -23,6 +23,42 @@ from components.shared.forms import (
 )
 
 
+def validate_activity_form(
+    name: str,
+    description: str,
+    erpnext_module: str,
+    action_type: str,
+    target_doctype: str,
+    complexity_score: int,
+    estimated_duration: int,
+) -> list[str]:
+    """Validate activity form data and return list of error messages."""
+    errors = []
+
+    if not name or not name.strip():
+        errors.append("Activity Name is required")
+
+    if not description or not description.strip():
+        errors.append("Description is required")
+
+    if not erpnext_module or not erpnext_module.strip():
+        errors.append("ERPNext Module is required")
+
+    if not action_type or not action_type.strip():
+        errors.append("Action Type is required")
+
+    if not target_doctype or not target_doctype.strip():
+        errors.append("Target DocType is required")
+
+    if complexity_score is None or complexity_score < 1 or complexity_score > 5:
+        errors.append("Complexity Score must be between 1 and 5")
+
+    if estimated_duration is None or estimated_duration < 1:
+        errors.append("Estimated Duration must be at least 1 second")
+
+    return errors
+
+
 def render_activity_form(api_client: APIClient, activity_id: Optional[str] = None):
     """Render activity creation/editing form."""
 
@@ -316,6 +352,23 @@ def render_activity_form(api_client: APIClient, activity_id: Optional[str] = Non
 
     # Handle form submission
     if submit_button:
+        # Validate form data before submission
+        validation_errors = validate_activity_form(
+            name,
+            description,
+            erpnext_module,
+            action_type,
+            target_doctype,
+            complexity_score,
+            estimated_duration,
+        )
+
+        if validation_errors:
+            # Display validation errors
+            for error in validation_errors:
+                show_error_message(error)
+            return  # Stop processing, don't submit to API
+
         try:
             # Prepare activity data
             activity_data = prepare_activity_data(
@@ -354,9 +407,28 @@ def render_activity_form(api_client: APIClient, activity_id: Optional[str] = Non
                 st.switch_page("pages/activities.py")
 
         except Exception as e:
-            show_error_message(
-                f"Error {'updating' if is_edit_mode else 'creating'} activity: {str(e)}"
-            )
+            error_message = str(e)
+            # Provide user-friendly error messages for common API errors
+            if "'NoneType' object is not subscriptable" in error_message:
+                show_error_message(
+                    "Unable to create activity due to missing or invalid data. Please check all required fields and try again."
+                )
+            elif "already exists" in error_message.lower():
+                show_error_message(
+                    f"An activity with the name '{name}' already exists. Please choose a different name."
+                )
+            elif "validation error" in error_message.lower():
+                show_error_message(
+                    "Activity data validation failed. Please check your input and try again."
+                )
+            elif "database error" in error_message.lower():
+                show_error_message(
+                    "Database error occurred. Please try again in a few moments."
+                )
+            else:
+                show_error_message(
+                    f"Error {'updating' if is_edit_mode else 'creating'} activity: {error_message}"
+                )
 
 
 def prepare_activity_data(

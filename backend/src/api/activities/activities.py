@@ -11,27 +11,26 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from ...application.dto.activity_schemas import (
-    ActivityBulkOperationRequest,
-    ActivityCreateRequest,
-    ActivityFilterRequest,
-    ActivityListResponse,
-    ActivityPersonaLinkCreateRequest,
-    ActivityPersonaLinkResponse,
-    ActivityResponse,
-    ActivitySearchRequest,
-    ActivityUpdateRequest,
+from src.application.dto.activity_schemas import (
+    ActivityBulkOperationRequestDTO,
+    ActivityCreateRequestDTO,
+    ActivityFilterDTO,
+    ActivityListResponseDTO,
+    ActivityPersonaLinkCreateRequestDTO,
+    ActivityPersonaLinkResponseDTO,
+    ActivityResponseDTO,
+    ActivityUpdateRequestDTO,
 )
-from ...application.services.activity_service import ActivityApplicationService
-from ...domain.activities.exceptions import (
+from src.application.services.activity_service import ActivityApplicationService
+from src.domain.activities.exceptions import (
     ActivityAlreadyExistsError,
     ActivityNotFoundError,
     ActivityPersonaLinkAlreadyExistsError,
     ActivityPersonaLinkNotFoundError,
     ActivityValidationError,
 )
-from ...infrastructure.database.config import get_db
-from ...infrastructure.database.repositories.activity_repository import (
+from src.infrastructure.database import get_sync_db
+from src.infrastructure.database.repositories.activity_repository import (
     SQLAlchemyActivityPersonaLinkRepository,
     SQLAlchemyActivityRepository,
 )
@@ -40,7 +39,7 @@ from ...infrastructure.database.repositories.activity_repository import (
 router = APIRouter(prefix="/activities", tags=["activities"])
 
 
-def get_activity_service(db: Session = Depends(get_db)) -> ActivityApplicationService:
+def get_activity_service(db: Session = Depends(get_sync_db)) -> ActivityApplicationService:
     """Dependency to get activity application service."""
     activity_repo = SQLAlchemyActivityRepository(db)
     link_repo = SQLAlchemyActivityPersonaLinkRepository(db)
@@ -48,16 +47,16 @@ def get_activity_service(db: Session = Depends(get_db)) -> ActivityApplicationSe
 
 
 @router.post(
-    "/",
-    response_model=ActivityResponse,
+    "",
+    response_model=ActivityResponseDTO,
     status_code=status.HTTP_201_CREATED,
     summary="Create new activity",
-    description="Create a new ERPNext business activity with validation and metadata",
+    description="Create a new business activity with validation.",
 )
 async def create_activity(
-    request: ActivityCreateRequest,
+    request: ActivityCreateRequestDTO,
     service: ActivityApplicationService = Depends(get_activity_service),
-) -> ActivityResponse:
+) -> ActivityResponseDTO:
     """Create a new activity."""
     try:
         activity = await service.create_activity(request)
@@ -81,14 +80,14 @@ async def create_activity(
 
 @router.get(
     "/{activity_id}",
-    response_model=ActivityResponse,
+    response_model=ActivityResponseDTO,
     summary="Get activity by ID",
-    description="Retrieve a specific activity by its unique identifier",
+    description="Retrieve a specific activity by its unique identifier.",
 )
 async def get_activity(
     activity_id: uuid.UUID,
     service: ActivityApplicationService = Depends(get_activity_service),
-) -> ActivityResponse:
+) -> ActivityResponseDTO:
     """Get an activity by ID."""
     try:
         activity = await service.get_activity_by_id(activity_id)
@@ -112,7 +111,7 @@ async def get_activity(
 
 @router.get(
     "/",
-    response_model=ActivityListResponse,
+    response_model=ActivityListResponseDTO,
     summary="List activities with filtering",
     description="Retrieve activities with optional filtering, search, and pagination",
 )
@@ -135,11 +134,11 @@ async def list_activities(
         None, ge=0, description="Maximum estimated duration"
     ),
     service: ActivityApplicationService = Depends(get_activity_service),
-) -> ActivityListResponse:
+) -> ActivityListResponseDTO:
     """List activities with filtering and pagination."""
     try:
         # Build filter request
-        filters = ActivityFilterRequest(
+        filters = ActivityFilterDTO(
             erpnext_module=erpnext_module,
             action_type=action_type,
             target_doctype=target_doctype,
@@ -162,15 +161,15 @@ async def list_activities(
 
 @router.put(
     "/{activity_id}",
-    response_model=ActivityResponse,
+    response_model=ActivityResponseDTO,
     summary="Update activity",
     description="Update an existing activity with new data and validation",
 )
 async def update_activity(
     activity_id: uuid.UUID,
-    request: ActivityUpdateRequest,
+    request: ActivityUpdateRequestDTO,
     service: ActivityApplicationService = Depends(get_activity_service),
-) -> ActivityResponse:
+) -> ActivityResponseDTO:
     """Update an activity."""
     try:
         activity = await service.update_activity(activity_id, request)
@@ -219,14 +218,14 @@ async def delete_activity(
 
 @router.post(
     "/search",
-    response_model=ActivityListResponse,
+    response_model=ActivityListResponseDTO,
     summary="Search activities",
     description="Advanced search for activities with multiple criteria",
 )
 async def search_activities(
-    request: ActivitySearchRequest,
+    request: ActivityFilterDTO,
     service: ActivityApplicationService = Depends(get_activity_service),
-) -> ActivityListResponse:
+) -> ActivityListResponseDTO:
     """Search activities with advanced criteria."""
     try:
         result = await service.search_activities(request)
@@ -240,14 +239,14 @@ async def search_activities(
 
 @router.get(
     "/modules/{module_name}",
-    response_model=list[ActivityResponse],
+    response_model=list[ActivityResponseDTO],
     summary="Get activities by module",
     description="Retrieve all activities for a specific ERPNext module",
 )
 async def get_activities_by_module(
     module_name: str,
     service: ActivityApplicationService = Depends(get_activity_service),
-) -> list[ActivityResponse]:
+) -> list[ActivityResponseDTO]:
     """Get activities by ERPNext module."""
     try:
         activities = await service.get_activities_by_module(module_name)
@@ -261,14 +260,14 @@ async def get_activities_by_module(
 
 @router.get(
     "/doctypes/{doctype_name}",
-    response_model=list[ActivityResponse],
+    response_model=list[ActivityResponseDTO],
     summary="Get activities by DocType",
     description="Retrieve all activities targeting a specific DocType",
 )
 async def get_activities_by_doctype(
     doctype_name: str,
     service: ActivityApplicationService = Depends(get_activity_service),
-) -> list[ActivityResponse]:
+) -> list[ActivityResponseDTO]:
     """Get activities by target DocType."""
     try:
         activities = await service.get_activities_by_doctype(doctype_name)
@@ -307,7 +306,7 @@ async def get_activity_statistics(
     description="Update the active/inactive status of multiple activities",
 )
 async def bulk_update_activity_status(
-    request: ActivityBulkOperationRequest,
+    request: ActivityBulkOperationRequestDTO,
     service: ActivityApplicationService = Depends(get_activity_service),
 ) -> dict[str, int]:
     """Bulk update activity status."""
@@ -347,16 +346,16 @@ async def bulk_delete_activities(
 # Activity-Persona Link endpoints
 @router.post(
     "/{activity_id}/personas",
-    response_model=ActivityPersonaLinkResponse,
+    response_model=ActivityPersonaLinkResponseDTO,
     status_code=status.HTTP_201_CREATED,
     summary="Link activity to persona",
     description="Create a relationship between an activity and a persona",
 )
 async def link_activity_to_persona(
     activity_id: uuid.UUID,
-    request: ActivityPersonaLinkCreateRequest,
+    request: ActivityPersonaLinkCreateRequestDTO,
     service: ActivityApplicationService = Depends(get_activity_service),
-) -> ActivityPersonaLinkResponse:
+) -> ActivityPersonaLinkResponseDTO:
     """Link an activity to a persona."""
     try:
         # Set activity_id from URL parameter
@@ -382,7 +381,7 @@ async def link_activity_to_persona(
 
 @router.get(
     "/{activity_id}/personas",
-    response_model=list[ActivityPersonaLinkResponse],
+    response_model=list[ActivityPersonaLinkResponseDTO],
     summary="Get activity personas",
     description="Retrieve all personas linked to an activity",
 )
@@ -391,7 +390,7 @@ async def get_activity_personas(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     service: ActivityApplicationService = Depends(get_activity_service),
-) -> list[ActivityPersonaLinkResponse]:
+) -> list[ActivityPersonaLinkResponseDTO]:
     """Get personas linked to an activity."""
     try:
         links = await service.get_activity_personas(activity_id, page, per_page)

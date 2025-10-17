@@ -7,17 +7,17 @@ domain layer and infrastructure in the ERPNext Test Automation Meta-Framework.
 import logging
 from uuid import UUID
 
-from ...domain.personas import (
-    Persona,
+from src.domain.personas.persona import Persona
+from src.domain.personas.exceptions import (
     PersonaAlreadyExistsError,
     PersonaMultipleValidationError,
     PersonaNotFoundError,
     PersonaValidationError,
 )
-from ...domain.personas import PersonaService as PersonaDomainService
-from ...domain.personas.persona_repository import PersonaRepository
-from ...infrastructure.database.repositories.unit_of_work import UnitOfWork
-from ..dto.persona_schemas import (
+from src.domain.personas.persona_service import PersonaService as PersonaDomainService
+from src.domain.personas.persona_repository import PersonaRepository
+from src.infrastructure.database.repositories.unit_of_work import UnitOfWork
+from src.application.dto.persona_schemas import (
     PersonaCreateRequest,
     PersonaListResponse,
     PersonaResponse,
@@ -318,7 +318,7 @@ class PersonaService:
                 for role in request.erpnext_roles.split(",")
                 if role.strip()
             ]
-            from ...domain.personas.erpnext_roles import validate_role_combination
+            from src.domain.personas.erpnext_roles import validate_role_combination
 
             role_warnings = validate_role_combination(roles)
             warnings.extend(role_warnings)
