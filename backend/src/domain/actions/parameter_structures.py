@@ -634,16 +634,19 @@ class ParameterSetValidator:
         transformed_values = {}
         for param_name, param in self.parameters.items():
             if param_name in values:
-                transformed_values[param_name] = param.transform_value(
-                    values[param_name]
-                )
+                if hasattr(param, 'transform_value'):
+                    transformed_values[param_name] = param.transform_value(
+                        values[param_name]
+                    )
+                else:
+                    transformed_values[param_name] = values[param_name]
             else:
                 transformed_values[param_name] = param.default_value
 
         # Validate each parameter
         for param_name, param in self.parameters.items():
             value = transformed_values.get(param_name)
-            param_errors = param.validate_value(value, transformed_values)
+            param_errors = param.validate_value(value)
             if param_errors:
                 errors[param_name] = param_errors
 

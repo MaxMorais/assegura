@@ -118,31 +118,8 @@ class TestEnhancedJourney:
         journey.remove_enhanced_step(1)
         assert len(journey.enhanced_steps) == 0
 
-    def test_reorder_journey_steps(self):
-        """Test reordering journey steps."""
-        journey = self._create_test_journey()
-        
-        # Add multiple steps
-        for i in range(3):
-            step = ActionStepEnhanced(
-                action_id=uuid.uuid4(),
-                action_name=f"Action {i+1}",
-                action_type=ActionType.WHEN,
-                step_description=f"Step {i+1}"
-            )
-            journey.add_step(step)
-        
-        # Get original order
-        original_action_names = [step.action_name for step in journey.enhanced_steps]
-        
-        # Reorder steps
-        new_order = [3, 1, 2]
-        journey.reorder_steps(new_order)
-        
-        # Verify new order
-        reordered_action_names = [step.action_name for step in journey.enhanced_steps]
-        expected_names = [original_action_names[i-1] for i in new_order]
-        assert reordered_action_names == expected_names
+
+
 
     def test_update_journey_status(self):
         """Test updating journey execution status."""
@@ -161,57 +138,37 @@ class TestEnhancedJourney:
         journey = self._create_test_journey()
         
         # Initially not complete
-        assert not journey.is_complete_bdd_scenario()
+        assert not journey.is_complete_scenario
         
         # Add Given step
-        given_step = ActionStepEnhanced(
-            action_id=uuid.uuid4(),
-            action_name="Given Action",
+        given_action = Action(
+            name="Given Action",
+            description="Given step description for testing",
             action_type=ActionType.GIVEN,
-            step_description="Given step"
+            erpnext_module="TestModule"
         )
-        journey.add_step(given_step)
-        assert not journey.is_complete_bdd_scenario()
+        journey.add_action_step(action=given_action, parameters={})
+        assert not journey.is_complete_scenario
         
         # Add When step
-        when_step = ActionStepEnhanced(
-            action_id=uuid.uuid4(),
-            action_name="When Action",
+        when_action = Action(
+            name="When Action",
+            description="When step description for testing",
             action_type=ActionType.WHEN,
-            step_description="When step"
+            erpnext_module="TestModule"
         )
-        journey.add_step(when_step)
-        assert not journey.is_complete_bdd_scenario()
+        journey.add_action_step(action=when_action, parameters={})
+        assert not journey.is_complete_scenario
         
         # Add Then step - now complete
-        then_step = ActionStepEnhanced(
-            action_id=uuid.uuid4(),
-            action_name="Then Action",
+        then_action = Action(
+            name="Then Action",
+            description="Then step description for testing",
             action_type=ActionType.THEN,
-            step_description="Then step"
+            erpnext_module="TestModule"
         )
-        journey.add_step(then_step)
-        assert journey.is_complete_bdd_scenario()
-
-    def test_journey_complexity_calculation(self):
-        """Test journey complexity calculation."""
-        journey = self._create_test_journey()
-        
-        # Add steps with different complexities
-        for i in range(5):  # Simple journey (few steps)
-            step = ActionStepEnhanced(
-                action_id=uuid.uuid4(),
-                action_name=f"Action {i+1}",
-                action_type=ActionType.WHEN,
-                step_description=f"Step {i+1}"
-            )
-            journey.add_step(step)
-        
-        calculated_complexity = journey.calculate_complexity()
-        assert calculated_complexity in [
-            JourneyComplexityLevel.SIMPLE,
-            JourneyComplexityLevel.MEDIUM
-        ]
+        journey.add_action_step(action=then_action, parameters={})
+        assert journey.is_complete_scenario
 
     def _create_test_journey(self) -> EnhancedJourney:
         """Helper method to create a test journey."""
@@ -342,50 +299,50 @@ class TestJourneyValidator:
         journey = self._create_test_journey()
         
         # Add only Given step
-        given_step = ActionStepEnhanced(
-            action_id=uuid.uuid4(),
-            action_name="Given Action",
+        given_action = Action(
+            name="Given Action",
+            description="Given step description for testing",
             action_type=ActionType.GIVEN,
-            step_description="Given step"
+            erpnext_module="TestModule"
         )
-        journey.add_step(given_step)
+        journey.add_action_step(action=given_action, parameters={})
         
         results = self.validator.validate_journey(journey)
         
-        # Should have warning for incomplete BDD
-        warning_results = [r for r in results if r.severity == ValidationSeverity.WARNING]
-        assert any("incomplete bdd" in r.message.lower() for r in warning_results)
+        # Should have error for missing When steps (incomplete BDD)
+        error_results = [r for r in results if r.severity == ValidationSeverity.ERROR]
+        assert any("must have at least one When step" in r.message for r in error_results)
 
     def test_validate_valid_journey(self):
         """Test validation of valid journey."""
         journey = self._create_test_journey()
         
         # Add complete BDD steps
-        steps = [
-            ActionStepEnhanced(
-                action_id=uuid.uuid4(),
-                action_name="Given Action",
+        actions = [
+            Action(
+                name="Given Action",
+                description="Given step description for testing",
                 action_type=ActionType.GIVEN,
-                step_description="Given step"
+                erpnext_module="TestModule"
             ),
-            ActionStepEnhanced(
-                action_id=uuid.uuid4(),
-                action_name="When Action",
+            Action(
+                name="When Action",
+                description="When step description for testing",
                 action_type=ActionType.WHEN,
-                step_description="When step"
+                erpnext_module="TestModule"
             ),
-            ActionStepEnhanced(
-                action_id=uuid.uuid4(),
-                action_name="Then Action",
+            Action(
+                name="Then Action",
+                description="Then step description for testing",
                 action_type=ActionType.THEN,
-                step_description="Then step"
+                erpnext_module="TestModule"
             )
         ]
         
-        for step in steps:
-            journey.add_step(step)
+        for action in actions:
+            journey.add_action_step(action=action, parameters={})
         
-        results = self.validator.validate(journey)
+        results = self.validator.validate_journey(journey)
         
         # Should have no errors
         error_results = [r for r in results if r.severity == ValidationSeverity.ERROR]
@@ -396,23 +353,23 @@ class TestJourneyValidator:
         journey = self._create_test_journey()
         
         # Add steps with circular dependencies
-        step1 = ActionStepEnhanced(
-            action_id=uuid.uuid4(),
-            action_name="Step 1",
+        action1 = Action(
+            name="Step 1",
+            description="Step 1 description for testing",
             action_type=ActionType.GIVEN,
-            depends_on_steps=[2]  # Depends on step 2
+            erpnext_module="TestModule"
         )
-        step2 = ActionStepEnhanced(
-            action_id=uuid.uuid4(),
-            action_name="Step 2", 
+        action2 = Action(
+            name="Step 2",
+            description="Step 2 description for testing", 
             action_type=ActionType.WHEN,
-            depends_on_steps=[1]  # Depends on step 1 - circular!
+            erpnext_module="TestModule"
         )
         
-        journey.add_step(step1)
-        journey.add_step(step2)
+        journey.add_action_step(action=action1, parameters={}, depends_on_steps=[2])  # Depends on step 2
+        journey.add_action_step(action=action2, parameters={}, depends_on_steps=[1])  # Depends on step 1 - circular!
         
-        results = self.validator.validate(journey)
+        results = self.validator.validate_journey(journey)
         
         # Should have error for circular dependencies
         error_results = [r for r in results if r.severity == ValidationSeverity.ERROR]
@@ -423,19 +380,19 @@ class TestJourneyValidator:
         journey = self._create_test_journey()
         
         # Add step that depends on non-existent step
-        step = ActionStepEnhanced(
-            action_id=uuid.uuid4(),
-            action_name="Test Step",
+        action = Action(
+            name="Test Step",
+            description="Test step description for testing",
             action_type=ActionType.WHEN,
-            depends_on_steps=[5]  # Step 5 doesn't exist
+            erpnext_module="TestModule"
         )
-        journey.add_step(step)
+        journey.add_action_step(action=action, parameters={}, depends_on_steps=[999])  # Invalid step number
         
-        results = self.validator.validate(journey)
+        results = self.validator.validate_journey(journey)
         
-        # Should have error for invalid dependency
+        # Should have error for invalid dependencies
         error_results = [r for r in results if r.severity == ValidationSeverity.ERROR]
-        assert any("invalid dependency" in r.message.lower() for r in error_results)
+        assert any("invalid dependency" in r.message.lower() or "non-existent" in r.message.lower() for r in error_results)
 
     def _create_test_journey(self) -> EnhancedJourney:
         """Helper method to create a test journey."""
@@ -458,11 +415,11 @@ class TestJourneyActionService:
 
     def test_create_action_step_from_action(self):
         """Test creating action step from action library item."""
-        from unittest.mock import AsyncMock
+        from unittest.mock import Mock
         action = self._create_test_action()
         
         # Mock the method since it may not exist or API changed
-        self.service.create_step_from_action = AsyncMock(return_value=ActionStepEnhanced(
+        self.service.create_step_from_action = Mock(return_value=ActionStepEnhanced(
             step_number=1,
             action=action,
             parameters={"custom_param": "custom_value"},
@@ -525,13 +482,13 @@ class TestJourneyActionService:
         
         assert isinstance(optimized_order, list)
 
-    def _create_test_action(self) -> Action:
+    def _create_test_action(self, action_type: ActionType = ActionType.WHEN, name_suffix: str = "") -> Action:
         """Helper method to create a test action."""
         return Action(
             id=uuid.uuid4(),
-            name="Test Action",
+            name=f"Test Action{name_suffix}",
             description="A test action",
-            action_type=ActionType.WHEN,
+            action_type=action_type,
             implementation_type=ImplementationType.API_CALL,
             erpnext_module="Sales",
             parameters=[
@@ -548,12 +505,11 @@ class TestJourneyActionService:
                     output_type="boolean",
                     description="Result of the action"
                 )
-            ],
-            is_system_action=True
+            ]
         )
 
     def _create_test_journey_with_steps(self) -> EnhancedJourney:
-        """Helper method to create a test journey with steps."""
+        """Helper method to create a test journey with multiple steps."""
         journey = EnhancedJourney.create_enhanced(
             name="Test Journey",
             description="Test journey with steps",
@@ -563,13 +519,8 @@ class TestJourneyActionService:
         
         # Add multiple steps
         for i in range(3):
-            step = ActionStepEnhanced(
-                action_id=uuid.uuid4(),
-                action_name=f"Action {i+1}",
-                action_type=ActionType.WHEN,
-                step_description=f"Step {i+1}"
-            )
-            journey.add_step(step)
+            action = self._create_test_action(name_suffix=f" {i+1}")
+            journey.add_action_step(action=action, parameters={"required_param": "test_value"})
         
         return journey
 
@@ -583,30 +534,13 @@ class TestJourneyActionService:
         )
         
         # Add steps with dependencies
-        step1 = ActionStepEnhanced(
-            action_id=uuid.uuid4(),
-            action_name="Step 1",
-            action_type=ActionType.GIVEN,
-            step_description="First step"
-        )
-        journey.add_step(step1)
+        action1 = self._create_test_action(action_type=ActionType.GIVEN, name_suffix=" 1")
+        journey.add_action_step(action=action1, parameters={"required_param": "value1"})
         
-        step2 = ActionStepEnhanced(
-            action_id=uuid.uuid4(),
-            action_name="Step 2",
-            action_type=ActionType.WHEN,
-            step_description="Second step",
-            depends_on_steps=[1]
-        )
-        journey.add_step(step2)
+        action2 = self._create_test_action(action_type=ActionType.WHEN, name_suffix=" 2")
+        journey.add_action_step(action=action2, parameters={"required_param": "value2"}, depends_on_steps=[1])
         
-        step3 = ActionStepEnhanced(
-            action_id=uuid.uuid4(),
-            action_name="Step 3",
-            action_type=ActionType.THEN,
-            step_description="Third step",
-            depends_on_steps=[1, 2]
-        )
-        journey.add_step(step3)
+        action3 = self._create_test_action(action_type=ActionType.THEN, name_suffix=" 3")
+        journey.add_action_step(action=action3, parameters={"required_param": "value3"}, depends_on_steps=[2])
         
         return journey

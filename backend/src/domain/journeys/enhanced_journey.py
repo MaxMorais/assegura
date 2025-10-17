@@ -131,6 +131,30 @@ class EnhancedJourney(BaseJourney):
         """Get execution plan."""
         return self._execution_plan
 
+    @property
+    def is_complete_scenario(self) -> bool:
+        """Check if journey represents a complete BDD scenario."""
+        return (
+            self.has_given_steps and
+            self.has_when_steps and
+            self.has_then_steps
+        )
+
+    @property
+    def has_given_steps(self) -> bool:
+        """Check if journey has Given steps."""
+        return any(step.action.action_type == ActionType.GIVEN for step in self._enhanced_steps)
+
+    @property
+    def has_when_steps(self) -> bool:
+        """Check if journey has When steps."""
+        return any(step.action.action_type == ActionType.WHEN for step in self._enhanced_steps)
+
+    @property
+    def has_then_steps(self) -> bool:
+        """Check if journey has Then steps."""
+        return any(step.action.action_type == ActionType.THEN for step in self._enhanced_steps)
+
     def add_action_step(
         self,
         action: Action,
@@ -214,9 +238,6 @@ class EnhancedJourney(BaseJourney):
         # Remove from enhanced steps
         removed_step = self._enhanced_steps.pop(step_number - 1)
         self._renumber_enhanced_steps()
-
-        # Remove from base class
-        super().remove_step(step_number)
 
         # Clear caches
         self._validation_cache.clear()

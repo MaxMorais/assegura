@@ -361,6 +361,55 @@ class DataDependencyRule(JourneyValidationRule):
                             )
                         )
 
+        # Check for invalid step dependencies (referencing non-existent steps)
+        all_step_numbers = {step.step_number for step in journey.enhanced_steps}
+        for step in journey.enhanced_steps:
+            if step.depends_on_steps:
+                for dep in step.depends_on_steps:
+                    if dep not in all_step_numbers:
+                        results.append(
+                            self._create_result(
+                                f"Step {step.step_number} depends on non-existent step {dep}",
+                                affected_steps=[step.step_number],
+                                suggested_fix=f"Remove dependency on step {dep} or add the missing step",
+                            )
+                        )
+
+        # Check for circular dependencies in depends_on_steps
+        dependency_graph = {}
+        for step in journey.enhanced_steps:
+            dependency_graph[step.step_number] = step.depends_on_steps or []
+
+        # Detect cycles using DFS
+        visited = set()
+        rec_stack = set()
+        
+        def has_cycle(node: int) -> bool:
+            visited.add(node)
+            rec_stack.add(node)
+            
+            for dependency in dependency_graph.get(node, []):
+                if dependency not in visited:
+                    if has_cycle(dependency):
+                        return True
+                elif dependency in rec_stack:
+                    return True
+            
+            rec_stack.remove(node)
+            return False
+
+        for step_num in dependency_graph:
+            if step_num not in visited:
+                if has_cycle(step_num):
+                    results.append(
+                        self._create_result(
+                            "Circular dependency detected in step dependencies",
+                            affected_steps=list(dependency_graph.keys()),
+                            suggested_fix="Remove or reorder circular dependencies between steps",
+                        )
+                    )
+                    break  # Only report once
+
         return results
 
 
