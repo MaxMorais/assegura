@@ -184,7 +184,7 @@
 ### Robot Framework Tests (MANDATORY)
 - [x] T088 [US4] Create Robot Framework test suite for test generation in backend/tests/contract/test_test_generation.robot
 - [x] T089 [US4] Create Robot Framework test suite for cloud execution in backend/tests/contract/test_cloud_execution.robot
-- [ ] T090 [US4] Create Robot Framework test suite for ERPNext integration in backend/tests/contract/test_erpnext_integration.robot
+- [x] T090 [US4] Create Robot Framework test suite for ERPNext integration in backend/tests/contract/test_erpnext_integration.robot
 
 ### Domain Layer - ERPNext Integration
 - [ ] T091 [US4] Implement ERPNext Instance domain entity in backend/src/domain/erpnext/erpnext_instance.py
