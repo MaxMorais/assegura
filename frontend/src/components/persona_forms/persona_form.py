@@ -330,9 +330,7 @@ class PersonaFormComponent:
             Tuple of (form_submitted, updated_data or None)
         """
         if container is None:
-            container = st
-
-        with container:
+            # Render directly in current context
             if show_title:
                 st.subheader(f"✏️ Edit Persona: {persona_data.get('name', 'Unknown')}")
                 st.markdown("Modify persona information and settings.")
@@ -348,12 +346,29 @@ class PersonaFormComponent:
                         "is_active": persona_data.get("is_active", True),
                     }
                 )
+        else:
+            with container:
+                if show_title:
+                    st.subheader(f"✏️ Edit Persona: {persona_data.get('name', 'Unknown')}")
+                    st.markdown("Modify persona information and settings.")
 
-            # Display any existing errors
-            if self.form_state.has_errors():
-                display_validation_errors(self.form_state.get_errors())
+                # Initialize form with existing data
+                if not self.form_state.get_data().get("name"):
+                    self.form_state.set_data(
+                        {
+                            "name": persona_data.get("name", ""),
+                            "description": persona_data.get("description", ""),
+                            "erpnext_roles": persona_data.get("erpnext_roles_list", []),
+                            "permissions": persona_data.get("permissions", ""),
+                            "is_active": persona_data.get("is_active", True),
+                        }
+                    )
 
-            return self.render_creation_form(container, show_title=False)
+        # Display any existing errors
+        if self.form_state.has_errors():
+            display_validation_errors(self.form_state.get_errors())
+
+        return self.render_creation_form(container, show_title=False)
 
     def _validate_form_data(self, data: dict[str, Any]) -> bool:
         """Validate form data on client side.
