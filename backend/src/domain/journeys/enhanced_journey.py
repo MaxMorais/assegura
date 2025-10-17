@@ -106,14 +106,14 @@ class ActionStepEnhanced:
 class EnhancedJourney(BaseJourney):
     """Enhanced Journey with Action Library integration."""
 
-    def __init__(self, *args, **kwargs):
-        # Remove enhanced-specific kwargs before calling parent
-        self._enhanced_steps: list[ActionStepEnhanced] = []
-        self._action_cache: dict[UUID, Action] = {}
-        self._execution_status = JourneyExecutionStatus.DRAFT
-        self._execution_plan: Optional[JourneyExecutionPlan] = None
-        self._validation_cache: dict[str, list[str]] = {}
+    _enhanced_steps: list[ActionStepEnhanced] = []
+    _action_cache: dict[UUID, Action] = {}
+    _execution_status: JourneyExecutionStatus = JourneyExecutionStatus.DRAFT
+    _execution_plan: Optional[JourneyExecutionPlan] = None
+    _validation_cache: dict[str, list[str]] = {}
 
+    def __init__(self, *args, **kwargs):
+        # Call parent first in Pydantic V2
         super().__init__(*args, **kwargs)
 
     @property
