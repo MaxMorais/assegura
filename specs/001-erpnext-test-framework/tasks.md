@@ -187,7 +187,7 @@
 - [x] T090 [US4] Create Robot Framework test suite for ERPNext integration in backend/tests/contract/test_erpnext_integration.robot
 
 ### Domain Layer - ERPNext Integration
-- [ ] T091 [US4] Implement ERPNext Instance domain entity in backend/src/domain/erpnext/erpnext_instance.py
+- [x] T091 [US4] Implement ERPNext Instance domain entity in backend/src/domain/erpnext/erpnext_instance.py
 - [ ] T092 [P] [US4] Create ERPNext API authentication models in backend/src/domain/erpnext/authentication.py
 - [ ] T093 [P] [US4] Implement ERPNext connection validation in backend/src/domain/erpnext/connection_service.py
 
