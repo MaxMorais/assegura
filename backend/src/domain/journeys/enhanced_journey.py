@@ -187,7 +187,7 @@ class EnhancedJourney(BaseJourney):
         # Create corresponding journey step for base class
         journey_step = JourneyStep(
             step_number=enhanced_step.step_number,
-            action_id=action.action_id,
+            action_id=action.id,
             action_type=action.action_type.value,
             action_name=action.name,
             description=step_description or action.description,
@@ -196,11 +196,8 @@ class EnhancedJourney(BaseJourney):
             metadata={"enhanced": True},
         )
 
-        # Add to base class steps
-        super().add_step(journey_step, position)
-
         # Cache the action
-        self._action_cache[action.action_id] = action
+        self._action_cache[action.id] = action
 
         # Invalidate validation cache
         self._validation_cache.clear()

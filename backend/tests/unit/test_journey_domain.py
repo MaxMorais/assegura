@@ -24,6 +24,7 @@ from src.domain.actions.action_library import (
     ActionType,
     ImplementationType,
     ActionParameter,
+    ActionOutput,
 )
 
 
@@ -541,12 +542,13 @@ class TestJourneyActionService:
                     description="A required parameter"
                 )
             ],
-            output_schema={
-                "type": "object",
-                "properties": {
-                    "result": {"type": "boolean"}
-                }
-            },
+            expected_outputs=[
+                ActionOutput(
+                    name="result",
+                    output_type="boolean",
+                    description="Result of the action"
+                )
+            ],
             is_system_action=True
         )
 
