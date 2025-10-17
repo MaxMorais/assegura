@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from src.application.dto.activity_schemas import (
     ActivityCreateRequestDTO,
-    ActivityCreateResponseDTO,
+    ActivityResponseDTO,
     ActivityUpdateRequestDTO,
     ActivityFilterDTO,
 )

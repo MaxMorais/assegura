@@ -26,7 +26,7 @@ sys.path.insert(0, str(src_path))
 try:
     # Import all model modules to ensure they're registered with SQLAlchemy
     from infrastructure.auth.models import Consultant, Tenant  # noqa
-    from infrastructure.database.config import DatabaseConfig
+    from infrastructure.database.config import get_database_config
     from infrastructure.database.models import Base  # Import all models here
 
     # TODO: Import additional model modules as they're created
@@ -37,6 +37,7 @@ except ImportError as e:
     print(f"Cannot import application models: {e}")
     print("Models will not be available for migration generation")
     Base = None
+    get_database_config = None
 
 # Alembic configuration object
 config = context.config
@@ -58,9 +59,19 @@ def get_database_url() -> str:
     Returns:
         Database connection URL
     """
+    if get_database_config is None:
+        # Fallback to environment variable
+        url = os.getenv("DATABASE_URL")
+        if not url:
+            raise ValueError(
+                "Database URL not available. Set DATABASE_URL environment variable "
+                "or configure DatabaseConfig properly."
+            )
+        return url
+
     try:
-        db_config = DatabaseConfig()
-        return db_config.get_connection_url()
+        db_config = get_database_config()
+        return db_config.get_database_url()
     except Exception as e:
         logger.error(f"Failed to get database URL from config: {e}")
         # Fallback to environment variable
@@ -110,23 +121,31 @@ def run_migrations_online() -> None:
     with the context. This is the more common usage pattern.
     """
     # Get database configuration
-    try:
-        db_config = DatabaseConfig()
-        connection_config = {
-            "url": db_config.get_connection_url(),
-            "poolclass": pool.NullPool,  # Disable connection pooling for migrations
-            "echo": db_config.echo_sql,
-            "future": True,  # Use SQLAlchemy 2.0 style
-        }
-    except Exception as e:
-        logger.error(f"Failed to create database config: {e}")
-        # Fallback configuration
+    if get_database_config is None:
         connection_config = {
             "url": get_database_url(),
             "poolclass": pool.NullPool,
             "echo": False,
             "future": True,
         }
+    else:
+        try:
+            db_config = get_database_config()
+            connection_config = {
+                "url": db_config.get_database_url(),
+                "poolclass": pool.NullPool,  # Disable connection pooling for migrations
+                "echo": db_config.echo_sql,
+                "future": True,  # Use SQLAlchemy 2.0 style
+            }
+        except Exception as e:
+            logger.error(f"Failed to create database config: {e}")
+            # Fallback configuration
+            connection_config = {
+                "url": get_database_url(),
+                "poolclass": pool.NullPool,
+                "echo": False,
+                "future": True,
+            }
 
     # Create engine
     connectable = create_engine(**connection_config)

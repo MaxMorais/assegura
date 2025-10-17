@@ -34,27 +34,46 @@ class DatabaseManager:
 
     def _initialize_engines(self) -> None:
         """Initialize SQLAlchemy engines with connection pooling."""
-        # Synchronous engine for migrations and batch operations
-        self._sync_engine = create_engine(
-            database_config.get_database_url(),
-            pool_size=database_config.pool_size,
-            max_overflow=database_config.max_overflow,
-            pool_timeout=database_config.pool_timeout,
-            pool_recycle=database_config.pool_recycle,
-            echo=database_config.echo_sql,
-            future=True,
-        )
+        db_url = database_config.get_database_url()
 
-        # Asynchronous engine for API operations
-        self._async_engine = create_async_engine(
-            database_config.get_async_database_url(),
-            pool_size=database_config.pool_size,
-            max_overflow=database_config.max_overflow,
-            pool_timeout=database_config.pool_timeout,
-            pool_recycle=database_config.pool_recycle,
-            echo=database_config.echo_sql,
-            future=True,
-        )
+        # Check if we're using SQLite (for testing)
+        is_sqlite = db_url.startswith("sqlite")
+
+        if is_sqlite:
+            # SQLite configuration - no connection pooling needed
+            self._sync_engine = create_engine(
+                db_url,
+                echo=database_config.echo_sql,
+                future=True,
+                connect_args={"check_same_thread": False},  # Needed for SQLite
+            )
+
+            self._async_engine = create_async_engine(
+                database_config.get_async_database_url(),
+                echo=database_config.echo_sql,
+                future=True,
+            )
+        else:
+            # PostgreSQL configuration with connection pooling
+            self._sync_engine = create_engine(
+                db_url,
+                pool_size=database_config.pool_size,
+                max_overflow=database_config.max_overflow,
+                pool_timeout=database_config.pool_timeout,
+                pool_recycle=database_config.pool_recycle,
+                echo=database_config.echo_sql,
+                future=True,
+            )
+
+            self._async_engine = create_async_engine(
+                database_config.get_async_database_url(),
+                pool_size=database_config.pool_size,
+                max_overflow=database_config.max_overflow,
+                pool_timeout=database_config.pool_timeout,
+                pool_recycle=database_config.pool_recycle,
+                echo=database_config.echo_sql,
+                future=True,
+            )
 
         # Session factories
         self._sync_session_factory = sessionmaker(
@@ -70,8 +89,7 @@ class DatabaseManager:
         )
 
         logger.info(
-            f"Initialized database connections to {database_config.host}:"
-            f"{database_config.port}/{database_config.name}"
+            f"Initialized database connections to {database_config.get_database_url(include_password=False)}"
         )
 
     @property

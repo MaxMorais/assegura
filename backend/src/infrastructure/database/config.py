@@ -8,7 +8,7 @@ and multi-tenant data isolation.
 import os
 from typing import Optional
 
-from pydantic import Field, validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -58,21 +58,24 @@ class DatabaseConfig(BaseSettings):
         env_prefix = "DB_"
         case_sensitive = False
 
-    @validator("port")
+    @field_validator("port")
+    @classmethod
     def validate_port(cls, v: int) -> int:
         """Validate database port range."""
         if not 1 <= v <= 65535:
             raise ValueError("Database port must be between 1 and 65535")
         return v
 
-    @validator("pool_size")
+    @field_validator("pool_size")
+    @classmethod
     def validate_pool_size(cls, v: int) -> int:
         """Validate connection pool size."""
         if v < 1:
             raise ValueError("Pool size must be at least 1")
         return v
 
-    @validator("ssl_mode")
+    @field_validator("ssl_mode")
+    @classmethod
     def validate_ssl_mode(cls, v: str) -> str:
         """Validate SSL mode."""
         valid_modes = {
@@ -119,22 +122,31 @@ class DatabaseConfig(BaseSettings):
         return url.replace("postgresql://", "postgresql+asyncpg://")
 
 
-class TestDatabaseConfig(DatabaseConfig):
-    """Test database configuration.
+class TestDatabaseConfig(BaseSettings):
+    """Test database configuration using SQLite.
 
-    Inherits from main config but uses test-specific defaults.
+    Uses SQLite for testing to avoid requiring PostgreSQL setup.
     """
 
-    name: str = Field(
-        default="erpnext_test_automation_test", description="Test database name"
+    # SQLite settings for testing
+    database_url: str = Field(
+        default="sqlite:///./test.db",
+        description="SQLite database URL for testing"
     )
-    echo_sql: bool = Field(default=True, description="Echo SQL for test debugging")
-    pool_size: int = Field(default=5, description="Smaller pool for tests")
+    echo_sql: bool = Field(default=False, description="Echo SQL for test debugging")
 
     class Config:
         """Pydantic configuration for tests."""
 
         env_prefix = "TEST_DB_"
+
+    def get_database_url(self, include_password: bool = True) -> str:
+        """Return SQLite database URL."""
+        return self.database_url
+
+    def get_async_database_url(self, include_password: bool = True) -> str:
+        """Return async SQLite database URL."""
+        return self.database_url.replace("sqlite://", "sqlite+aiosqlite://")
 
 
 def get_database_config() -> DatabaseConfig:

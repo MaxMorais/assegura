@@ -92,6 +92,83 @@ class PersonaService:
         logger.info(f"Created persona with ID: {saved_persona.id}")
         return self._to_response(saved_persona)
 
+    async def validate_persona_data(
+        self, request: PersonaCreateRequest
+    ) -> PersonaValidationResponse:
+        """Validate persona data without creating the persona.
+
+        Args:
+            request: Persona data to validate
+
+        Returns:
+            Validation results with errors, warnings, and suggestions
+        """
+        logger.info(f"Validating persona data: {request.name}")
+
+        errors = []
+        warnings = []
+        suggestions = []
+
+        try:
+            # Parse roles from string
+            roles = [
+                role.strip() for role in request.erpnext_roles.split(",") if role.strip()
+            ]
+
+            # Create persona domain entity for validation
+            persona = Persona(
+                name=request.name,
+                description=request.description,
+                erpnext_roles=roles,
+                permissions=request.permissions or "",
+                is_active=getattr(request, 'is_active', True),
+            )
+
+            # Validate persona using domain service
+            self.domain_service.validate_persona_creation(persona)
+
+        except PersonaMultipleValidationError as e:
+            errors = [str(error) for error in e.errors]
+        except PersonaValidationError as e:
+            errors = [str(e)]
+        except Exception as e:
+            errors = [f"Unexpected validation error: {str(e)}"]
+
+        # Check for existing persona with same name
+        if not errors:
+            existing_persona = await self.persona_repository.find_by_name(request.name)
+            if existing_persona:
+                errors.append(f"Persona with name '{request.name}' already exists")
+
+        # Generate warnings and suggestions
+        if not errors:
+            # Check for role suggestions
+            if "Sales Manager" not in request.erpnext_roles and "Sales User" in request.erpnext_roles:
+                warnings.append({
+                    "field": "erpnext_roles",
+                    "message": "Consider adding Item Manager role for complete sales workflow",
+                    "code": "role_suggestion",
+                })
+
+            # Check for permission suggestions
+            if not request.permissions or len(request.permissions.split(",")) < 2:
+                suggestions.append("Consider adding more specific permissions for better access control")
+
+        # Convert warnings to strings as expected by the schema
+        warning_strings = []
+        for warning in warnings:
+            if isinstance(warning, dict):
+                warning_strings.append(warning["message"])
+            else:
+                warning_strings.append(str(warning))
+
+        return PersonaValidationResponse(
+            is_valid=len(errors) == 0,
+            errors=errors,
+            warnings=warning_strings,
+            suggestions=suggestions,
+        )
+
     async def get_persona(self, persona_id: UUID) -> PersonaResponse:
         """Get persona by ID.
 
@@ -270,69 +347,67 @@ class PersonaService:
         )
 
     async def validate_persona_data(
-        self, request: PersonaCreateRequest
+        self, request: PersonaCreateRequest, consultant_id: UUID
     ) -> PersonaValidationResponse:
-        """Validate persona data without creating it.
+        """Validate persona data and provide warnings/suggestions.
 
         Args:
-            request: Persona data to validate
+            request: Persona creation request data
+            consultant_id: ID of the consultant performing validation
 
         Returns:
-            Validation response with errors and warnings
+            Validation response with errors, warnings, and suggestions
         """
         errors = []
         warnings = []
         suggestions = []
 
         try:
-            # Parse roles
-            roles = [
-                role.strip()
-                for role in request.erpnext_roles.split(",")
-                if role.strip()
-            ]
-
-            # Create persona for validation
+            # Create persona entity for validation
             persona = Persona(
                 name=request.name,
                 description=request.description,
-                erpnext_roles=roles,
+                erpnext_roles=request.erpnext_roles.split(",") if request.erpnext_roles else [],
                 permissions=request.permissions or "",
-                is_active=request.is_active,
             )
 
-            # Validate using domain service
-            self.domain_service.validate_persona_creation(persona)
+            # Validate the persona using domain service
+            self.domain_service.validate_persona(persona)
 
         except PersonaValidationError as e:
-            errors.append(e.message)
-        except PersonaMultipleValidationError as e:
-            errors.extend([error.message for error in e.errors])
-        except Exception as e:
             errors.append(str(e))
+        except PersonaMultipleValidationError as e:
+            errors.extend([str(error) for error in e.errors])
 
-        # Get role combination warnings
+        # Check for existing personas with same name
         try:
-            roles = [
-                role.strip()
-                for role in request.erpnext_roles.split(",")
-                if role.strip()
-            ]
-            from src.domain.personas.erpnext_roles import validate_role_combination
+            existing = await self.persona_repository.get_by_name(request.name)
+            if existing:
+                warnings.append(f"Persona with name '{request.name}' already exists")
+        except PersonaNotFoundError:
+            pass  # This is expected
 
-            role_warnings = validate_role_combination(roles)
-            warnings.extend(role_warnings)
-        except Exception:
-            pass
+        # Generate role-based warnings and suggestions
+        if request.erpnext_roles:
+            roles = [role.strip() for role in request.erpnext_roles.split(",") if role.strip()]
 
-        # Generate suggestions
+            # Check for common role combinations and suggest improvements
+            if "Sales Manager" in roles and "Item Manager" not in roles:
+                warnings.append("Consider adding Item Manager role for complete sales workflow")
+
+            if "Purchase Manager" in roles and "Supplier" not in roles:
+                warnings.append("Consider adding Supplier role for complete purchase workflow")
+
+            if "Accountant" in roles and "Accounts Manager" not in roles:
+                suggestions.append("Consider upgrading to Accounts Manager for full accounting access")
+
+        # Generate permission-based suggestions
+        if not request.permissions or not request.permissions.strip():
+            suggestions.append("Consider adding specific permissions to define access boundaries")
+
+        # Check description quality
         if len(request.description) < 50:
-            suggestions.append("Consider adding more detail to the persona description")
-
-        if len(roles) == 1:
-            suggestions.append(
-                "Consider if this persona needs additional roles for complete functionality"
-            )
+            warnings.append("Description is quite short. Consider adding more details about responsibilities")
 
         return PersonaValidationResponse(
             is_valid=len(errors) == 0,
@@ -341,56 +416,65 @@ class PersonaService:
             suggestions=suggestions,
         )
 
-    async def get_persona_suggestions(
-        self, request: PersonaSuggestionRequest
-    ) -> PersonaSuggestionResponse:
-        """Generate persona suggestions based on module and user level.
-
-        Args:
-            request: Suggestion request parameters
-
-        Returns:
-            List of suggested persona configurations
-        """
-        suggestions_data = self.domain_service.generate_persona_suggestions(
-            module=request.module,
-            user_level=request.user_level,
-            description_keywords=request.description_keywords,
-        )
-
-        # Convert to PersonaCreateRequest objects
-        suggestions = []
-        for suggestion_data in suggestions_data:
-            suggestion = PersonaCreateRequest(
-                name=suggestion_data["name"],
-                description=suggestion_data["description"],
-                erpnext_roles=suggestion_data["erpnext_roles"],
-                permissions=suggestion_data["permissions"],
-            )
-            suggestions.append(suggestion)
-
-        return PersonaSuggestionResponse(
-            suggestions=suggestions,
-            module=request.module,
-            user_level=request.user_level,
-        )
-
     async def get_persona_statistics(self) -> PersonaStatsResponse:
-        """Get statistics about personas in the system.
+        """Get comprehensive persona statistics.
 
         Returns:
-            Persona statistics
+            Statistics about personas including counts, distributions, and trends
         """
-        stats = await self.persona_repository.get_statistics()
+        # Get all personas
+        personas = await self.persona_repository.get_all()
+
+        total_personas = len(personas)
+        active_personas = sum(1 for p in personas if p.is_active)
+        inactive_personas = total_personas - active_personas
+
+        # Calculate roles distribution
+        roles_distribution = {}
+        for persona in personas:
+            for role in persona.erpnext_roles:
+                roles_distribution[role] = roles_distribution.get(role, 0) + 1
+
+        # Calculate permissions distribution
+        permissions_distribution = {}
+        for persona in personas:
+            if persona.permissions:
+                permissions = [p.strip() for p in persona.permissions.split(",") if p.strip()]
+                for permission in permissions:
+                    permissions_distribution[permission] = permissions_distribution.get(permission, 0) + 1
+
+        # Calculate creation trend (simplified - group by month)
+        creation_trend = []
+        from collections import defaultdict
+        import datetime
+
+        monthly_counts = defaultdict(int)
+        for persona in personas:
+            month_key = persona.created_at.strftime("%Y-%m")
+            monthly_counts[month_key] += 1
+
+        for month, count in sorted(monthly_counts.items()):
+            creation_trend.append({
+                "month": month,
+                "count": count
+            })
+
+        # Calculate complexity metrics
+        complexity_metrics = {
+            "avg_roles_per_persona": sum(len(p.erpnext_roles) for p in personas) / max(total_personas, 1),
+            "avg_permissions_per_persona": sum(len(p.permissions.split(",")) if p.permissions else 0 for p in personas) / max(total_personas, 1),
+            "most_complex_persona": max(personas, key=lambda p: len(p.erpnext_roles) + (len(p.permissions.split(",")) if p.permissions else 0)).name if personas else None,
+            "least_complex_persona": min(personas, key=lambda p: len(p.erpnext_roles) + (len(p.permissions.split(",")) if p.permissions else 0)).name if personas else None,
+        }
 
         return PersonaStatsResponse(
-            total_personas=stats["total"],
-            active_personas=stats["active"],
-            inactive_personas=stats["inactive"],
-            roles_distribution=stats["roles_distribution"],
-            permissions_distribution=stats["permissions_distribution"],
-            creation_trend=stats["creation_trend"],
-            complexity_metrics=stats["complexity_metrics"],
+            total_personas=total_personas,
+            active_personas=active_personas,
+            inactive_personas=inactive_personas,
+            roles_distribution=roles_distribution,
+            permissions_distribution=permissions_distribution,
+            creation_trend=creation_trend,
+            complexity_metrics=complexity_metrics,
         )
 
     async def activate_persona(self, persona_id: UUID) -> PersonaResponse:
@@ -576,3 +660,73 @@ class PersonaService:
         # - Journeys that use this persona
         # - Test executions that involve this persona
         return 0
+
+    async def validate_persona_data(
+        self, request: PersonaCreateRequest, consultant_id: UUID
+    ) -> PersonaValidationResponse:
+        """Validate persona data and provide warnings/suggestions.
+
+        Args:
+            request: Persona creation request data
+            consultant_id: ID of the consultant performing validation
+
+        Returns:
+            Validation response with errors, warnings, and suggestions
+        """
+        errors = []
+        warnings = []
+        suggestions = []
+
+        try:
+            # Create persona entity for validation
+            persona = Persona(
+                name=request.name,
+                description=request.description,
+                erpnext_roles=request.erpnext_roles.split(",") if request.erpnext_roles else [],
+                permissions=request.permissions or "",
+            )
+
+            # Validate the persona using domain service
+            self.domain_service.validate_persona(persona)
+
+        except PersonaValidationError as e:
+            errors.append(str(e))
+        except PersonaMultipleValidationError as e:
+            errors.extend([str(error) for error in e.errors])
+
+        # Check for existing personas with same name
+        try:
+            existing = await self.persona_repository.get_by_name(request.name)
+            if existing:
+                warnings.append(f"Persona with name '{request.name}' already exists")
+        except PersonaNotFoundError:
+            pass  # This is expected
+
+        # Generate role-based warnings and suggestions
+        if request.erpnext_roles:
+            roles = [role.strip() for role in request.erpnext_roles.split(",") if role.strip()]
+
+            # Check for common role combinations and suggest improvements
+            if "Sales Manager" in roles and "Item Manager" not in roles:
+                warnings.append("Consider adding Item Manager role for complete sales workflow")
+
+            if "Purchase Manager" in roles and "Supplier" not in roles:
+                warnings.append("Consider adding Supplier role for complete purchase workflow")
+
+            if "Accountant" in roles and "Accounts Manager" not in roles:
+                suggestions.append("Consider upgrading to Accounts Manager for full accounting access")
+
+        # Generate permission-based suggestions
+        if not request.permissions or not request.permissions.strip():
+            suggestions.append("Consider adding specific permissions to define access boundaries")
+
+        # Check description quality
+        if len(request.description) < 50:
+            warnings.append("Description is quite short. Consider adding more details about responsibilities")
+
+        return PersonaValidationResponse(
+            is_valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            suggestions=suggestions,
+        )

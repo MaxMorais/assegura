@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, computed_field
 
 from .base_schemas import EntityDTO
 
@@ -183,36 +183,15 @@ class PersonaResponse(EntityDTO):
 
     # Computed fields
     erpnext_roles_list: list[str] = Field(
-        ..., description="ERPNext roles as list", alias="erpnext_roles_list"
+        ..., description="ERPNext roles as list"
     )
     permissions_list: list[str] = Field(
-        ..., description="Permissions as list", alias="permissions_list"
+        ..., description="Permissions as list"
     )
     effective_permissions_count: int = Field(
         ...,
         description="Total number of effective permissions including role-based",
-        alias="effective_permissions_count",
     )
-
-    @model_validator(mode='after')
-    def compute_derived_fields(self):
-        """Compute derived fields after validation."""
-        # Compute roles list
-        if hasattr(self, 'erpnext_roles') and self.erpnext_roles:
-            self.erpnext_roles_list = [role.strip() for role in self.erpnext_roles.split(",") if role.strip()]
-        else:
-            self.erpnext_roles_list = []
-
-        # Compute permissions list
-        if hasattr(self, 'permissions') and self.permissions:
-            self.permissions_list = [perm.strip() for perm in self.permissions.split(",") if perm.strip()]
-        else:
-            self.permissions_list = []
-
-        # Compute effective permissions count
-        self.effective_permissions_count = len(self.permissions_list)
-
-        return self
 
 
 class PersonaListResponse(BaseModel):

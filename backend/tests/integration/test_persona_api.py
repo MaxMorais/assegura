@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from src.api.main import app
+from src.application.dto.persona_schemas import PersonaResponse
 
 
 class TestPersonaAPIIntegration:
@@ -38,29 +39,30 @@ class TestPersonaAPIIntegration:
             "name": "Test Sales Manager",
             "description": "A test persona for sales operations",
             "erpnext_roles": "Sales Manager,Customer",
-            "permissions": "read_sales_order,write_sales_order",
+            "permissions": "read:sales_order,write:sales_order",
             "is_active": True,
         }
 
     @pytest.fixture
     def sample_persona_response(self):
         """Sample persona response data."""
-        return {
-            "id": str(uuid.uuid4()),
-            "name": "Test Sales Manager",
-            "description": "A test persona for sales operations",
-            "erpnext_roles": "Sales Manager,Customer",
-            "permissions": "read_sales_order,write_sales_order",
-            "is_active": True,
-            "created_at": "2024-01-15T10:30:00Z",
-            "updated_at": "2024-01-15T10:30:00Z",
-            "version": 1,
-            "erpnext_roles_list": ["Sales Manager", "Customer"],
-            "permissions_list": ["read_sales_order", "write_sales_order"],
-            "effective_permissions_count": 15,
-        }
+        persona_id = uuid.uuid4()
+        return PersonaResponse(
+            id=persona_id,
+            name="Test Sales Manager",
+            description="A test persona for sales operations",
+            erpnext_roles="Sales Manager,Customer",
+            permissions="read:sales_order,write:sales_order",
+            is_active=True,
+            created_at="2024-01-15T10:30:00Z",
+            updated_at="2024-01-15T10:30:00Z",
+            version=1,
+            erpnext_roles_list=["Sales Manager", "Customer"],
+            permissions_list=["read:sales_order", "write:sales_order"],
+            effective_permissions_count=15,
+        )
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_create_persona_success(
         self,
@@ -74,7 +76,7 @@ class TestPersonaAPIIntegration:
         """Test successful persona creation."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
         # Mock service response
         with patch(
@@ -86,7 +88,7 @@ class TestPersonaAPIIntegration:
             )
 
             # Make request
-            response = client.post("/personas/", json=sample_persona_data)
+            response = client.post("/api/v1/personas/", json=sample_persona_data)
 
             # Assertions
             assert response.status_code == 201
@@ -98,7 +100,7 @@ class TestPersonaAPIIntegration:
             assert "created_at" in response_data
             assert "updated_at" in response_data
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_create_persona_validation_error(
         self, mock_get_consultant, mock_get_db, client, mock_db_session
@@ -106,7 +108,7 @@ class TestPersonaAPIIntegration:
         """Test persona creation with validation errors."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
         # Invalid data (missing required fields)
         invalid_data = {
@@ -116,14 +118,14 @@ class TestPersonaAPIIntegration:
         }
 
         # Make request
-        response = client.post("/personas/", json=invalid_data)
+        response = client.post("/api/v1/personas/", json=invalid_data)
 
         # Assertions
         assert response.status_code == 422  # Validation error
         response_data = response.json()
         assert "detail" in response_data
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_get_persona_success(
         self,
@@ -136,9 +138,9 @@ class TestPersonaAPIIntegration:
         """Test successful persona retrieval."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
-        persona_id = sample_persona_response["id"]
+        persona_id = sample_persona_response.id
 
         # Mock service response
         with patch(
@@ -148,15 +150,15 @@ class TestPersonaAPIIntegration:
             mock_service.get_persona = AsyncMock(return_value=sample_persona_response)
 
             # Make request
-            response = client.get(f"/personas/{persona_id}")
+            response = client.get(f"/api/v1/personas/{persona_id}")
 
             # Assertions
             assert response.status_code == 200
             response_data = response.json()
-            assert response_data["id"] == persona_id
-            assert response_data["name"] == sample_persona_response["name"]
+            assert response_data["id"] == str(persona_id)
+            assert response_data["name"] == sample_persona_response.name
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_get_persona_not_found(
         self, mock_get_consultant, mock_get_db, client, mock_db_session
@@ -164,7 +166,7 @@ class TestPersonaAPIIntegration:
         """Test persona retrieval with non-existent ID."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
         non_existent_id = str(uuid.uuid4())
 
@@ -180,7 +182,7 @@ class TestPersonaAPIIntegration:
             )
 
             # Make request
-            response = client.get(f"/personas/{non_existent_id}")
+            response = client.get(f"/api/v1/personas/{non_existent_id}")
 
             # Assertions
             assert response.status_code == 404
@@ -188,7 +190,7 @@ class TestPersonaAPIIntegration:
             assert "detail" in response_data
             assert non_existent_id in response_data["detail"]
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_list_personas_success(
         self,
@@ -201,16 +203,18 @@ class TestPersonaAPIIntegration:
         """Test successful persona listing."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
         # Mock service response
-        list_response = {
-            "personas": [sample_persona_response],
-            "total": 1,
-            "limit": 50,
-            "offset": 0,
-            "has_more": False,
-        }
+        from src.application.dto.persona_schemas import PersonaListResponse
+        list_response = PersonaListResponse(
+            items=[sample_persona_response],
+            total=1,
+            page=1,
+            page_size=50,
+            has_next=False,
+            has_previous=False,
+        )
 
         with patch(
             "src.api.personas.persona_routes.PersonaService"
@@ -219,17 +223,17 @@ class TestPersonaAPIIntegration:
             mock_service.list_personas = AsyncMock(return_value=list_response)
 
             # Make request
-            response = client.get("/personas/")
+            response = client.get("/api/v1/personas/")
 
             # Assertions
             assert response.status_code == 200
             response_data = response.json()
-            assert "personas" in response_data
+            assert "items" in response_data
             assert "total" in response_data
-            assert len(response_data["personas"]) == 1
+            assert len(response_data["items"]) == 1
             assert response_data["total"] == 1
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_list_personas_with_filters(
         self, mock_get_consultant, mock_get_db, client, mock_db_session
@@ -237,16 +241,18 @@ class TestPersonaAPIIntegration:
         """Test persona listing with various filters."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
         # Mock service response
-        list_response = {
-            "personas": [],
-            "total": 0,
-            "limit": 25,
-            "offset": 0,
-            "has_more": False,
-        }
+        from src.application.dto.persona_schemas import PersonaListResponse
+        list_response = PersonaListResponse(
+            items=[],
+            total=0,
+            page=1,
+            page_size=25,
+            has_next=False,
+            has_previous=False,
+        )
 
         with patch(
             "src.api.personas.persona_routes.PersonaService"
@@ -256,16 +262,16 @@ class TestPersonaAPIIntegration:
 
             # Make request with filters
             response = client.get(
-                "/personas/?limit=25&offset=0&search=sales&is_active=true&erpnext_role=Sales Manager"
+                "/api/v1/personas/?limit=25&offset=0&search=sales&is_active=true&erpnext_role=Sales Manager"
             )
 
             # Assertions
             assert response.status_code == 200
             response_data = response.json()
-            assert response_data["limit"] == 25
-            assert response_data["offset"] == 0
+            assert response_data["page_size"] == 25
+            assert response_data["page"] == 1
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_update_persona_success(
         self,
@@ -278,9 +284,9 @@ class TestPersonaAPIIntegration:
         """Test successful persona update."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
-        persona_id = sample_persona_response["id"]
+        persona_id = sample_persona_response.id
         update_data = {
             "name": "Updated Sales Manager",
             "description": "Updated description",
@@ -288,10 +294,11 @@ class TestPersonaAPIIntegration:
         }
 
         # Create expected response with updates
-        updated_response = sample_persona_response.copy()
-        updated_response.update(update_data)
-        updated_response["updated_at"] = "2024-01-15T11:30:00Z"
-        updated_response["version"] = 2
+        updated_response = sample_persona_response.model_copy(update={
+            **update_data,
+            "updated_at": "2024-01-15T11:30:00Z",
+            "version": 2
+        })
 
         # Mock service response
         with patch(
@@ -301,7 +308,7 @@ class TestPersonaAPIIntegration:
             mock_service.update_persona = AsyncMock(return_value=updated_response)
 
             # Make request
-            response = client.put(f"/personas/{persona_id}", json=update_data)
+            response = client.put(f"/api/v1/personas/{persona_id}", json=update_data)
 
             # Assertions
             assert response.status_code == 200
@@ -311,7 +318,7 @@ class TestPersonaAPIIntegration:
             assert response_data["is_active"] == update_data["is_active"]
             assert response_data["version"] == 2
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_delete_persona_success(
         self, mock_get_consultant, mock_get_db, client, mock_db_session
@@ -319,7 +326,7 @@ class TestPersonaAPIIntegration:
         """Test successful persona deletion."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
         persona_id = str(uuid.uuid4())
 
@@ -331,13 +338,13 @@ class TestPersonaAPIIntegration:
             mock_service.delete_persona = AsyncMock(return_value=None)
 
             # Make request
-            response = client.delete(f"/personas/{persona_id}")
+            response = client.delete(f"/api/v1/personas/{persona_id}")
 
             # Assertions
             assert response.status_code == 204
             assert response.content == b""  # No content for successful deletion
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_validate_persona_data_success(
         self,
@@ -350,18 +357,14 @@ class TestPersonaAPIIntegration:
         """Test successful persona data validation."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
         # Mock service response
         validation_response = {
             "is_valid": True,
             "errors": [],
             "warnings": [
-                {
-                    "field": "erpnext_roles",
-                    "message": "Consider adding Item Manager role for complete sales workflow",
-                    "code": "role_suggestion",
-                }
+                "Consider adding Item Manager role for complete sales workflow"
             ],
             "suggestions": [],
         }
@@ -375,7 +378,7 @@ class TestPersonaAPIIntegration:
             )
 
             # Make request
-            response = client.post("/personas/validate", json=sample_persona_data)
+            response = client.post("/api/v1/personas/validate", json=sample_persona_data)
 
             # Assertions
             assert response.status_code == 200
@@ -384,7 +387,7 @@ class TestPersonaAPIIntegration:
             assert len(response_data["warnings"]) == 1
             assert len(response_data["errors"]) == 0
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_get_persona_statistics_success(
         self, mock_get_consultant, mock_get_db, client, mock_db_session
@@ -392,24 +395,33 @@ class TestPersonaAPIIntegration:
         """Test successful persona statistics retrieval."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
         # Mock service response
         stats_response = {
             "total_personas": 15,
             "active_personas": 12,
             "inactive_personas": 3,
-            "total_activities": 47,
-            "personas_by_module": {
-                "Sales": 5,
-                "Purchase": 3,
-                "Stock": 4,
-                "Accounts": 2,
+            "roles_distribution": {
+                "Sales Manager": 4,
+                "Purchase Manager": 3,
+                "Stock User": 2,
             },
-            "most_used_roles": [
-                {"role": "Sales Manager", "count": 4},
-                {"role": "Purchase Manager", "count": 3},
+            "permissions_distribution": {
+                "read:sales": 5,
+                "write:sales": 3,
+                "read:purchase": 2,
+            },
+            "creation_trend": [
+                {"month": "2024-01", "count": 5},
+                {"month": "2024-02", "count": 10},
             ],
+            "complexity_metrics": {
+                "avg_roles_per_persona": 2.5,
+                "avg_permissions_per_persona": 1.8,
+                "most_complex_persona": "Sales Manager",
+                "least_complex_persona": "Stock User",
+            },
         }
 
         with patch(
@@ -419,7 +431,7 @@ class TestPersonaAPIIntegration:
             mock_service.get_persona_statistics = AsyncMock(return_value=stats_response)
 
             # Make request
-            response = client.get("/personas/statistics/overview")
+            response = client.get("/api/v1/personas/statistics/overview")
 
             # Assertions
             assert response.status_code == 200
@@ -427,10 +439,12 @@ class TestPersonaAPIIntegration:
             assert response_data["total_personas"] == 15
             assert response_data["active_personas"] == 12
             assert response_data["inactive_personas"] == 3
-            assert "personas_by_module" in response_data
-            assert "most_used_roles" in response_data
+            assert "roles_distribution" in response_data
+            assert "permissions_distribution" in response_data
+            assert "creation_trend" in response_data
+            assert "complexity_metrics" in response_data
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_activate_persona_success(
         self,
@@ -443,14 +457,15 @@ class TestPersonaAPIIntegration:
         """Test successful persona activation."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
-        persona_id = sample_persona_response["id"]
+        persona_id = sample_persona_response.id
 
         # Create activated response
-        activated_response = sample_persona_response.copy()
-        activated_response["is_active"] = True
-        activated_response["updated_at"] = "2024-01-15T12:00:00Z"
+        activated_response = sample_persona_response.model_copy(update={
+            "is_active": True,
+            "updated_at": "2024-01-15T12:00:00Z"
+        })
 
         # Mock service response
         with patch(
@@ -460,14 +475,14 @@ class TestPersonaAPIIntegration:
             mock_service.activate_persona = AsyncMock(return_value=activated_response)
 
             # Make request
-            response = client.post(f"/personas/{persona_id}/activate")
+            response = client.post(f"/api/v1/personas/{persona_id}/activate")
 
             # Assertions
             assert response.status_code == 200
             response_data = response.json()
             assert response_data["is_active"] is True
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_find_similar_personas_success(
         self,
@@ -480,9 +495,9 @@ class TestPersonaAPIIntegration:
         """Test successful similar personas search."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.return_value = mock_db_session
+        mock_get_db.return_value = iter([mock_db_session])  # get_sync_db returns a generator
 
-        persona_id = sample_persona_response["id"]
+        persona_id = sample_persona_response.id
 
         # Mock similar personas response
         similar_response = [
@@ -490,17 +505,19 @@ class TestPersonaAPIIntegration:
                 "id": str(uuid.uuid4()),
                 "name": "Senior Sales Manager",
                 "description": "Senior sales manager with team leadership",
-                "similarity_score": 0.85,
                 "erpnext_roles_count": 3,
+                "permissions_count": 5,
                 "is_active": True,
+                "created_at": "2024-01-15T10:30:00Z",
             },
             {
                 "id": str(uuid.uuid4()),
                 "name": "Sales Representative",
                 "description": "Individual contributor in sales",
-                "similarity_score": 0.72,
                 "erpnext_roles_count": 2,
+                "permissions_count": 3,
                 "is_active": True,
+                "created_at": "2024-01-15T10:30:00Z",
             },
         ]
 
@@ -515,25 +532,34 @@ class TestPersonaAPIIntegration:
 
             # Make request
             response = client.get(
-                f"/personas/{persona_id}/similar?similarity_threshold=0.7"
+                f"/api/v1/personas/{persona_id}/similar?similarity_threshold=0.7"
             )
 
             # Assertions
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data) == 2
-            assert all(p["similarity_score"] >= 0.7 for p in response_data)
+            # Verify all returned personas have the expected fields
+            for persona in response_data:
+                assert "id" in persona
+                assert "name" in persona
+                assert "description" in persona
+                assert "erpnext_roles_count" in persona
+                assert "permissions_count" in persona
+                assert "is_active" in persona
+                assert "created_at" in persona
 
     def test_health_check_endpoint(self, client):
         """Test health check endpoint."""
-        response = client.get("/personas/health")
+        response = client.get("/health")
 
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["status"] == "healthy"
-        assert response_data["service"] == "persona-api"
         assert "version" in response_data
         assert "timestamp" in response_data
+        assert "database" in response_data
+        assert "redis" in response_data
 
 
 class TestPersonaAPIErrorHandling:
@@ -544,25 +570,25 @@ class TestPersonaAPIErrorHandling:
         """Create test client."""
         return TestClient(app)
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.api.personas.persona_routes.get_persona_service")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_internal_server_error_handling(
-        self, mock_get_consultant, mock_get_db, client
+        self, mock_get_consultant, mock_get_persona_service, client
     ):
         """Test handling of unexpected internal server errors."""
         # Setup mocks
         mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_db.side_effect = Exception("Database connection failed")
+        mock_get_persona_service.side_effect = Exception("Database connection failed")
 
         # Make request
-        response = client.get("/personas/")
+        response = client.get("/api/v1/personas/")
 
         # Assertions
         assert response.status_code == 500
         response_data = response.json()
         assert "detail" in response_data
 
-    @patch("src.api.personas.persona_routes.get_database_session")
+    @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")
     def test_authentication_error_handling(
         self, mock_get_consultant, mock_get_db, client
@@ -572,7 +598,7 @@ class TestPersonaAPIErrorHandling:
         mock_get_consultant.side_effect = Exception("Authentication failed")
 
         # Make request
-        response = client.get("/personas/")
+        response = client.get("/api/v1/personas/")
 
         # Assertions - Should be handled by authentication middleware
         # The exact status code depends on authentication middleware implementation
@@ -582,7 +608,7 @@ class TestPersonaAPIErrorHandling:
         """Test handling of invalid UUID format in path parameters."""
         invalid_id = "not-a-valid-uuid"
 
-        response = client.get(f"/personas/{invalid_id}")
+        response = client.get(f"/api/v1/personas/{invalid_id}")
 
         # Should return validation error for invalid UUID format
         assert response.status_code == 422

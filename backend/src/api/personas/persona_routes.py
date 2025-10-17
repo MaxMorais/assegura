@@ -40,15 +40,15 @@ router = APIRouter(prefix="/personas", tags=["personas"])
 def get_persona_service() -> PersonaService:
     """Dependency injection for PersonaService."""
     # This will be properly configured with DI container in production
-    from src.infrastructure.database.config import get_database_session
+    from src.infrastructure.database import get_sync_db
     from src.infrastructure.database.repositories.persona_repository import (
-        PersonaRepository,
+        SQLAlchemyPersonaRepository,
     )
-    from src.infrastructure.database.repositories.unit_of_work import UnitOfWork
+    from src.infrastructure.database.repositories.unit_of_work import SqlUnitOfWork
 
-    session = get_database_session()
-    repository = PersonaRepository(session)
-    unit_of_work = UnitOfWork(session)
+    session = next(get_sync_db())
+    repository = SQLAlchemyPersonaRepository(session)
+    unit_of_work = SqlUnitOfWork(session)
     return PersonaService(repository, unit_of_work)
 
 
@@ -159,7 +159,7 @@ async def list_personas(
         result = await persona_service.list_personas(search_request)
 
         logger.info(
-            f"Retrieved {len(result.personas)} personas (total: {result.total})"
+            f"Retrieved {len(result.items)} personas (total: {result.total})"
         )
         return result
 

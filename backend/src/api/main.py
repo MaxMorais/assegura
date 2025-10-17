@@ -126,6 +126,7 @@ def _configure_middleware(app: "FastAPI") -> None:
             "127.0.0.1", 
             "backend",  # Docker service name
             "erpnext-test-backend",  # Docker container name
+            "testserver",  # FastAPI TestClient
             "*.assegura.com",
             "*.herokuapp.com",  # For deployment
         ],
@@ -144,13 +145,9 @@ def _configure_error_handlers(app: "FastAPI") -> None:
         request: "Request", exc: HTTPException
     ) -> "JSONResponse":
         """Handle HTTP exceptions with standardized format."""
-        error_response = ErrorResponse(
-            error=exc.__class__.__name__,
-            message=str(exc.detail),
-            details={"status_code": exc.status_code},
-        )
         return JSONResponse(
-            status_code=exc.status_code, content=error_response.model_dump()
+            status_code=exc.status_code,
+            content={"detail": str(exc.detail)}
         )
 
     @app.exception_handler(RequestValidationError)
@@ -158,50 +155,9 @@ def _configure_error_handlers(app: "FastAPI") -> None:
         request: "Request", exc: RequestValidationError
     ) -> "JSONResponse":
         """Handle Pydantic validation errors with detailed field information."""
-        validation_errors = []
-
-        for error in exc.errors():
-            field_path = " -> ".join(str(loc) for loc in error["loc"])
-            validation_errors.append(
-                {
-                    "field": field_path,
-                    "message": error["msg"],
-                    "value": error.get("input"),
-                }
-            )
-
-        error_response = ValidationErrorResponse(
-            message="Request validation failed", validation_errors=validation_errors
-        )
-
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=error_response.model_dump(),
-        )
-
-    @app.exception_handler(ValidationError)
-    async def pydantic_validation_exception_handler(
-        request: "Request", exc: ValidationError
-    ) -> "JSONResponse":
-        """Handle Pydantic model validation errors."""
-        validation_errors = []
-
-        for error in exc.errors():
-            field_path = " -> ".join(str(loc) for loc in error["loc"])
-            validation_errors.append(
-                {
-                    "field": field_path,
-                    "message": error["msg"],
-                    "value": error.get("input"),
-                }
-            )
-
-        error_response = ValidationErrorResponse(
-            message="Data validation failed", validation_errors=validation_errors
-        )
-
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content=error_response.model_dump()
+            content={"detail": exc.errors()},
         )
 
     @app.exception_handler(Exception)
@@ -219,7 +175,7 @@ def _configure_error_handlers(app: "FastAPI") -> None:
 
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=error_response.model_dump(),
+            content=error_response.model_dump(mode='json'),
         )
 
 

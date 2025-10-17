@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from src.api.main import app
-from src.infrastructure.database.config import get_db
+from src.infrastructure.database import get_sync_db
 from tests.fixtures.database import test_db_session
 from tests.fixtures.journey_fixtures import (
     sample_journey_data,
