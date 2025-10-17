@@ -13,10 +13,10 @@ from httpx import AsyncClient
 from sqlalchemy.orm import Session
 
 from src.application.dto.activity_schemas import (
-    ActivityCreateRequestDTODTO,
+    ActivityCreateRequestDTO,
     ActivityCreateResponseDTO,
-    ActivityUpdateRequestDTODTO,
-    ActivityFilterRequestDTODTO,
+    ActivityUpdateRequestDTO,
+    ActivityFilterDTO,
 )
 from src.application.services.activity_service import ActivityApplicationService
 from src.infrastructure.database.repositories.activity_repository import (
@@ -196,7 +196,7 @@ class TestActivityIntegration:
             created_activities.append(activity)
 
         # Test module filter
-        accounts_filter = ActivityFilterRequestDTO(erpnext_module="Accounts")
+        accounts_filter = ActivityFilterDTO(erpnext_module="Accounts")
         accounts_result = await activity_service.list_activities(
             accounts_filter, page=1, per_page=10
         )
@@ -204,7 +204,7 @@ class TestActivityIntegration:
         assert all(a.erpnext_module == "Accounts" for a in accounts_result.activities)
 
         # Test action type filter
-        create_filter = ActivityFilterRequestDTO(action_type="create")
+        create_filter = ActivityFilterDTO(action_type="create")
         create_result = await activity_service.list_activities(
             create_filter, page=1, per_page=10
         )
@@ -212,7 +212,7 @@ class TestActivityIntegration:
         assert create_result.activities[0].action_type == "create"
 
         # Test complexity filter
-        low_complexity_filter = ActivityFilterRequestDTO(complexity_score=1)
+        low_complexity_filter = ActivityFilterDTO(complexity_score=1)
         low_complexity_result = await activity_service.list_activities(
             low_complexity_filter, page=1, per_page=10
         )
@@ -220,7 +220,7 @@ class TestActivityIntegration:
         assert low_complexity_result.activities[0].complexity_score == 1
 
         # Test active status filter
-        active_filter = ActivityFilterRequestDTO(is_active=True)
+        active_filter = ActivityFilterDTO(is_active=True)
         active_result = await activity_service.list_activities(
             active_filter, page=1, per_page=10
         )
@@ -228,14 +228,14 @@ class TestActivityIntegration:
         assert all(a.is_active for a in active_result.activities)
 
         # Test search
-        search_filter = ActivityFilterRequestDTO(search="invoice")
+        search_filter = ActivityFilterDTO(search="invoice")
         search_result = await activity_service.list_activities(
             search_filter, page=1, per_page=10
         )
         assert search_result.total >= 2  # Should find activities with "invoice" in name
 
         # Test combined filters
-        combined_filter = ActivityFilterRequestDTO(
+        combined_filter = ActivityFilterDTO(
             erpnext_module="Accounts", is_active=True
         )
         combined_result = await activity_service.list_activities(
