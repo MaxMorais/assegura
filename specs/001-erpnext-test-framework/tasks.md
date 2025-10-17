@@ -192,7 +192,7 @@
 - [x] T093 [P] [US4] Implement ERPNext connection validation in backend/src/domain/erpnext/connection_service.py
 
 ### Domain Layer - Test Generation
-- [ ] T094 [US4] Implement Test Suite domain entity in backend/src/domain/test_generation/test_suite.py
+- [x] T094 [US4] Implement Test Suite domain entity in backend/src/domain/test_generation/test_suite.py
 - [ ] T095 [P] [US4] Create Robot Framework code generation engine in backend/src/domain/test_generation/robot_generator.py
 - [ ] T096 [P] [US4] Implement test data generation logic in backend/src/domain/test_generation/test_data_generator.py
 
