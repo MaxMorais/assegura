@@ -23,6 +23,7 @@ from src.domain.actions.action_library import (
     Action,
     ActionType,
     ImplementationType,
+    ActionParameter,
 )
 
 
@@ -537,13 +538,14 @@ class TestJourneyActionService:
             action_type=ActionType.WHEN,
             implementation_type=ImplementationType.API_CALL,
             erpnext_module="Sales",
-            parameters_schema={
-                "type": "object",
-                "properties": {
-                    "required_param": {"type": "string"}
-                },
-                "required": ["required_param"]
-            },
+            parameters=[
+                ActionParameter(
+                    name="required_param",
+                    type="string",
+                    required=True,
+                    description="A required parameter"
+                )
+            ],
             output_schema={
                 "type": "object",
                 "properties": {

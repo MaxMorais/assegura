@@ -87,7 +87,13 @@ class Journey(BaseEntity):
             created_at: Journey creation timestamp
             updated_at: Journey last update timestamp
         """
-        super().__init__(id, created_at, updated_at)
+        super().__init__()
+
+        # Set BaseEntity fields
+        self.id = id or uuid4()
+        self.created_at = created_at or datetime.utcnow()
+        self.updated_at = updated_at or datetime.utcnow()
+        self.version = 1
 
         self._name = name
         self._description = description
