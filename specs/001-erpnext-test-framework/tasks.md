@@ -188,7 +188,7 @@
 
 ### Domain Layer - ERPNext Integration
 - [x] T091 [US4] Implement ERPNext Instance domain entity in backend/src/domain/erpnext/erpnext_instance.py
-- [ ] T092 [P] [US4] Create ERPNext API authentication models in backend/src/domain/erpnext/authentication.py
+- [x] T092 [P] [US4] Create ERPNext API authentication models in backend/src/domain/erpnext/authentication.py
 - [ ] T093 [P] [US4] Implement ERPNext connection validation in backend/src/domain/erpnext/connection_service.py
 
 ### Domain Layer - Test Generation
