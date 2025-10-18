@@ -83,11 +83,21 @@ class SQLAlchemyPersonaRepository(PersonaRepository):
 
     async def find_by_id(self, persona_id: UUID) -> Optional[Persona]:
         """Find persona by unique identifier."""
+        print(f"DEBUG: Repository find_by_id called with persona_id: {persona_id} (type: {type(persona_id)})")
+        print(f"DEBUG: Repository session: {self.session}")
+        
+        # Debug: Check all personas in the database
+        all_personas = self.session.query(PersonaModel).all()
+        print(f"DEBUG: All personas in database: {[(p.id, type(p.id), p.name) for p in all_personas]}")
+        
         model = (
             self.session.query(PersonaModel)
-            .filter(PersonaModel.id == persona_id)
+            .filter(PersonaModel.id == str(persona_id))
             .first()
         )
+        
+        print(f"DEBUG: Query result model: {model}")
+        print(f"DEBUG: Model id: {model.id if model else None}")
 
         return model.to_domain() if model else None
 

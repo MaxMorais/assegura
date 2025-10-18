@@ -5,7 +5,7 @@ multi-tenant support, validation, and error handling.
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -23,6 +23,12 @@ from src.application.dto.persona_schemas import (
     PersonaUpdateRequest,
     PersonaValidationResponse,
 )
+from src.application.dto.activity_schemas import (
+    ActivityPersonaLinkResponseDTO,
+    ActivityPersonaLinkCreateRequestDTO,
+    ActivityListResponseDTO,
+)
+from src.application.services.activity_service import ActivityApplicationService
 from src.application.services.persona_service import PersonaService
 from src.domain.personas.exceptions import (
     PersonaAlreadyExistsError,
@@ -50,6 +56,25 @@ def get_persona_service() -> PersonaService:
     repository = SQLAlchemyPersonaRepository(session)
     unit_of_work = SqlUnitOfWork(session)
     return PersonaService(repository, unit_of_work)
+
+
+def get_activity_service() -> ActivityApplicationService:
+    """Dependency injection for ActivityApplicationService."""
+    # This will be properly configured with DI container in production
+    from src.infrastructure.database import get_sync_db
+    from src.infrastructure.database.repositories.activity_repository import (
+        SQLAlchemyActivityRepository,
+        SQLAlchemyActivityPersonaLinkRepository,
+    )
+    from src.infrastructure.database.repositories.persona_repository import (
+        SQLAlchemyPersonaRepository,
+    )
+
+    session = next(get_sync_db())
+    activity_repo = SQLAlchemyActivityRepository(session)
+    persona_repo = SQLAlchemyPersonaRepository(session)
+    link_repo = SQLAlchemyActivityPersonaLinkRepository(session)
+    return ActivityApplicationService(activity_repo, persona_repo, link_repo)
 
 
 @router.post(
@@ -587,3 +612,135 @@ async def health_check() -> JSONResponse:
             "timestamp": "2025-01-15T10:30:00Z",
         },
     )
+
+
+# Persona-Activity endpoints
+@router.get(
+    "/{persona_id}/activities",
+    response_model=ActivityListResponseDTO,
+    summary="List persona activities",
+    description="Get paginated list of activities linked to a persona",
+)
+async def list_persona_activities(
+    persona_id: UUID,
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(20, ge=1, le=100, description="Items per page"),
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> ActivityListResponseDTO:
+    """List activities linked to a persona."""
+    result = await service.get_persona_activities(str(persona_id), None, page, per_page)
+    return result
+
+
+@router.get(
+    "/{persona_id}/activities/statistics",
+    summary="Get persona activity statistics",
+    description="Get statistics about activities linked to a persona",
+)
+async def get_persona_activity_statistics(
+    persona_id: UUID,
+    service: ActivityApplicationService = Depends(get_activity_service),
+):
+    """Get persona activity statistics."""
+    try:
+        activities_response = await service.get_persona_activities(str(persona_id), page=1, per_page=100)
+        activities = activities_response.activities  # Access the activities from the paginated response
+        result = {
+            "persona_id": str(persona_id),
+            "statistics": {
+                "total_activities": len(activities),
+                "average_complexity": 3.0,  # Mock value
+                "total_estimated_duration": sum(getattr(activity.activity, 'estimated_duration', 180) for activity in activities),
+            },
+        }
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}",
+        )
+
+
+@router.get(
+    "/{persona_id}/activities/recommendations",
+    summary="Get activity recommendations",
+    description="Get recommended activities for a persona",
+)
+async def get_activity_recommendations(
+    persona_id: UUID,
+    limit: int = Query(5, ge=1, le=20, description="Maximum number of recommendations"),
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> list[dict[str, Any]]:
+    """Get activity recommendations for a persona."""
+    try:
+        # For now, return mock recommendations
+        return [
+            {
+                "activity_id": "mock-activity-1",
+                "name": "Recommended Activity 1",
+                "reason": "Based on persona role",
+                "confidence_score": 0.85,
+            },
+            {
+                "activity_id": "mock-activity-2", 
+                "name": "Recommended Activity 2",
+                "reason": "Complementary to existing activities",
+                "confidence_score": 0.72,
+            },
+        ][:limit]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}",
+        )
+
+
+@router.get(
+    "/{persona_id}/activities/{activity_id}",
+    response_model=ActivityPersonaLinkResponseDTO,
+    summary="Get persona-activity link",
+    description="Get the link between a specific persona and activity",
+)
+async def get_persona_activity_link(
+    persona_id: UUID,
+    activity_id: UUID,
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> ActivityPersonaLinkResponseDTO:
+    """Get specific persona-activity link."""
+    try:
+        # Use the repository directly to get the link
+        link = service.activity_persona_link_repository.get_by_ids(persona_id, activity_id)
+        if not link:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Link between persona {persona_id} and activity {activity_id} not found",
+            )
+        return service._link_to_dto(link)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}",
+        )
+
+
+@router.delete(
+    "/{persona_id}/activities/{activity_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete persona-activity link",
+    description="Remove the link between a persona and activity",
+)
+async def delete_persona_activity_link(
+    persona_id: UUID,
+    activity_id: UUID,
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> None:
+    """Delete persona-activity link."""
+    try:
+        await service.unlink_activity_from_persona(persona_id, activity_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Link between persona {persona_id} and activity {activity_id} not found",
+        )

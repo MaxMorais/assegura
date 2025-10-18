@@ -26,6 +26,7 @@ from sqlalchemy import text
 
 from src.application.dto import ErrorResponse, HealthResponse, ValidationErrorResponse
 from src.infrastructure.database import db_manager
+from src.api.middleware.error_handler import ErrorHandlingMiddleware
 
 # Configure logging
 logging.basicConfig(
@@ -103,6 +104,9 @@ def _configure_middleware(app: "FastAPI") -> None:
     Args:
         app: FastAPI application instance
     """
+    # Error handling middleware (must be first)
+    app.add_middleware(ErrorHandlingMiddleware, debug=True, include_trace=True)
+
     # CORS middleware for frontend communication
     app.add_middleware(
         CORSMiddleware,
@@ -229,9 +233,11 @@ def _configure_routes(app: "FastAPI") -> None:
     # Add route includes for domain modules
     try:
         from .activities import router as activities_router
-        logger.info("About to include activities router")
+        logger.info(f"About to include activities router with {len(activities_router.routes)} routes")
+        logger.info(f"Activities router routes: {[route.path for route in activities_router.routes]}")
         app.include_router(activities_router, prefix="/api/v1")
         logger.info("Activities router included successfully")
+        logger.info(f"App routes after including activities: {len(app.routes)}")
     except Exception as e:
         logger.error(f"Failed to include activities router: {e}")
         import traceback
@@ -243,6 +249,8 @@ def _configure_routes(app: "FastAPI") -> None:
 
         app.include_router(personas_router, prefix="/api/v1")
         logger.info("Personas router included successfully")
+        logger.info(f"Personas router routes: {[route.path for route in personas_router.routes]}")
+        logger.info(f"App routes after including personas: {len(app.routes)}")
     except ImportError as e:
         logger.warning(f"Personas module not ready yet: {e}")
         import traceback

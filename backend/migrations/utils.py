@@ -34,7 +34,7 @@ class MigrationManager:
                 f"Migrations directory not found: {self.migrations_dir}"
             )
 
-    def run_alembic_command(self, command: list[str]) -> subprocess.CompletionProcess:
+    def run_alembic_command(self, command: list[str]) -> subprocess.CompletedProcess:
         """Run alembic command with proper configuration.
 
         Args:

@@ -59,29 +59,20 @@ def get_activity_service(db: Session = Depends(get_sync_db)) -> ActivityApplicat
     summary="Create new activity",
     description="Create a new business activity with validation.",
 )
-async def create_activity(
+def create_activity(
     request: ActivityCreateRequestDTO,
     service: ActivityApplicationService = Depends(get_activity_service),
 ) -> ActivityResponseDTO:
     """Create a new activity."""
     try:
-        activity = await service.create_activity(request)
+        activity = service.create_activity(request)
         return activity
-    except ActivityAlreadyExistsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Activity already exists: {str(e)}",
-        )
-    except ActivityValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Validation error: {str(e)}",
-        )
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}",
-        )
+    except Exception as e:
+        # Log the full exception for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error creating activity: {str(e)}", exc_info=True)
+        raise
 
 
 @router.get(
@@ -334,17 +325,17 @@ async def link_activity_to_persona(
 ) -> ActivityPersonaLinkResponseDTO:
     """Link an activity to a persona."""
     try:
-        link = await service.link_activity_to_persona(str(persona_id), str(activity_id), request)
+        link = await service.link_activity_to_persona(persona_id, activity_id, request)
         return link
-    except ActivityPersonaLinkAlreadyExistsError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Activity {activity_id} is already linked to persona {request.persona_id}",
-        )
     except ActivityNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Activity with ID {activity_id} not found",
+        )
+    except ActivityPersonaLinkAlreadyExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Link between activity {activity_id} and persona {persona_id} already exists",
         )
     except SQLAlchemyError as e:
         raise HTTPException(

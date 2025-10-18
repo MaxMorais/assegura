@@ -19,6 +19,9 @@ from ...domain.activities.exceptions import (
     ActivityPersonaLinkNotFoundError,
     ActivityValidationError,
 )
+from ...domain.personas.exceptions import (
+    PersonaNotFoundError,
+)
 from ..dto.activity_schemas import (
     ActivityBulkLinkRequestDTO,
     ActivityBulkLinkResponseDTO,
@@ -53,12 +56,12 @@ class ActivityApplicationService:
 
     # Activity CRUD Operations
 
-    async def create_activity(
+    def create_activity(
         self, request: ActivityCreateRequestDTO
     ) -> ActivityResponseDTO:
         """Create a new activity."""
         # Check if activity with same name already exists
-        existing = await self.activity_repository.get_by_name(request.name)
+        existing = self.activity_repository.get_by_name(request.name)
         if existing:
             raise ActivityAlreadyExistsError("name", request.name)
 
@@ -85,14 +88,12 @@ class ActivityApplicationService:
         self.domain_service.validate_activity_creation(activity)
 
         # Save to repository
-        saved_activity = await self.activity_repository.create(activity)
+        saved_activity = self.activity_repository.create(activity)
 
         return self._activity_to_dto(saved_activity)
 
     async def get_activity_by_id(self, activity_id: Union[str, uuid.UUID]) -> ActivityResponseDTO:
         """Get activity by ID."""
-        if isinstance(activity_id, str):
-            activity_id = uuid.UUID(activity_id)
         activity = await self.activity_repository.get_by_id(activity_id)
         if not activity:
             raise ActivityNotFoundError(activity_id)
@@ -103,10 +104,6 @@ class ActivityApplicationService:
         self, activity_id: Union[str, uuid.UUID], request: ActivityUpdateRequestDTO
     ) -> ActivityResponseDTO:
         """Update an existing activity."""
-        # Convert activity_id to UUID if it's a string
-        if isinstance(activity_id, str):
-            activity_id = uuid.UUID(activity_id)
-        
         # Get existing activity
         activity = await self.activity_repository.get_by_id(activity_id)
         if not activity:
@@ -162,10 +159,6 @@ class ActivityApplicationService:
 
     async def delete_activity(self, activity_id: Union[str, uuid.UUID]) -> None:
         """Delete an activity."""
-        # Convert activity_id to UUID if it's a string
-        if isinstance(activity_id, str):
-            activity_id = uuid.UUID(activity_id)
-        
         activity = await self.activity_repository.get_by_id(activity_id)
         if not activity:
             raise ActivityNotFoundError(str(activity_id))
@@ -269,27 +262,29 @@ class ActivityApplicationService:
     ) -> ActivityPersonaLinkResponseDTO:
         """Link an activity to a persona."""
         # Verify persona and activity exist
-        persona = await self.persona_repository.get_by_id(uuid.UUID(persona_id))
+        persona_id_uuid = persona_id if isinstance(persona_id, uuid.UUID) else uuid.UUID(persona_id)
+        persona = self.persona_repository.find_by_id(persona_id_uuid)
         if not persona:
             raise ActivityNotFoundError(
                 persona_id
             )  # Using generic error for simplicity
 
-        activity = await self.activity_repository.get_by_id(uuid.UUID(activity_id))
+        activity_id_uuid = activity_id if isinstance(activity_id, uuid.UUID) else uuid.UUID(activity_id)
+        activity = await self.activity_repository.get_by_id(activity_id_uuid)
         if not activity:
             raise ActivityNotFoundError(activity_id)
 
         # Check if link already exists
-        existing_link = await self.activity_persona_link_repository.get_by_ids(
-            uuid.UUID(persona_id), uuid.UUID(activity_id)
+        existing_link = self.activity_persona_link_repository.get_by_ids(
+            persona_id_uuid, activity_id_uuid
         )
         if existing_link:
             raise ActivityPersonaLinkAlreadyExistsError(activity_id, persona_id)
 
         # Create link
-        link = await self.activity_persona_link_repository.create(
-            persona_id=uuid.UUID(persona_id),
-            activity_id=uuid.UUID(activity_id),
+        link = self.activity_persona_link_repository.create(
+            persona_id=persona_id_uuid,
+            activity_id=activity_id_uuid,
             priority=request.priority.value,
             notes=request.notes,
             is_primary=request.is_primary,
@@ -329,14 +324,17 @@ class ActivityApplicationService:
         self, persona_id: str, activity_id: str
     ) -> None:
         """Unlink an activity from a persona."""
-        link = await self.activity_persona_link_repository.get_by_ids(
-            uuid.UUID(persona_id), uuid.UUID(activity_id)
+        persona_id_uuid = persona_id if isinstance(persona_id, uuid.UUID) else uuid.UUID(persona_id)
+        activity_id_uuid = activity_id if isinstance(activity_id, uuid.UUID) else uuid.UUID(activity_id)
+        
+        link = self.activity_persona_link_repository.get_by_ids(
+            persona_id_uuid, activity_id_uuid
         )
         if not link:
             raise ActivityPersonaLinkNotFoundError(activity_id, persona_id)
 
         await self.activity_persona_link_repository.delete_by_ids(
-            uuid.UUID(persona_id), uuid.UUID(activity_id)
+            persona_id_uuid, activity_id_uuid
         )
 
     async def get_persona_activities(
@@ -348,9 +346,11 @@ class ActivityApplicationService:
     ) -> ActivityListResponseDTO:
         """Get activities linked to a persona."""
         # Verify persona exists
-        persona = await self.persona_repository.get_by_id(uuid.UUID(persona_id))
+        print(f"DEBUG: Looking for persona with id: {persona_id}")
+        persona = await self.persona_repository.find_by_id(uuid.UUID(persona_id))
+        print(f"DEBUG: Found persona: {persona}")
         if not persona:
-            raise ActivityNotFoundError(persona_id)
+            raise PersonaNotFoundError(persona_id)
 
         # Get linked activities
         links = await self.activity_persona_link_repository.get_by_persona_id(
@@ -375,7 +375,7 @@ class ActivityApplicationService:
         )
 
         return ActivityListResponseDTO(
-            items=persona_activities,
+            activities=[item.activity for item in persona_activities],
             total=total,
             page=page,
             per_page=per_page,
@@ -400,7 +400,7 @@ class ActivityApplicationService:
         # Get personas and convert to DTOs
         activity_personas = []
         for link in links:
-            persona = await self.persona_repository.get_by_id(link.persona_id)
+            persona = await self.persona_repository.find_by_id(link.persona_id)
             if persona:
                 activity_personas.append(
                     {

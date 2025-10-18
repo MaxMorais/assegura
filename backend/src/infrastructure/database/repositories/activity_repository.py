@@ -7,7 +7,7 @@ for persistence operations with PostgreSQL database.
 import os
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from sqlalchemy import and_, asc, desc, func, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -95,7 +95,7 @@ class SQLAlchemyActivityRepository(BaseRepository, ActivityRepository):
             updated_at=entity.updated_at,
         )
 
-    async def create(self, activity: Activity) -> Activity:
+    def create(self, activity: Activity) -> Activity:
         """Create a new activity in the repository."""
         try:
             # Check if activity with same name exists
@@ -123,17 +123,18 @@ class SQLAlchemyActivityRepository(BaseRepository, ActivityRepository):
                 raise ActivityAlreadyExistsError("name", activity.name)
             raise SQLAlchemyError(f"Failed to create activity: {e}")
 
-    async def get_by_id(self, activity_id: uuid.UUID) -> Optional[Activity]:
+    async def get_by_id(self, activity_id: Union[str, uuid.UUID]) -> Optional[Activity]:
         """Get an activity by its ID."""
+        activity_id_str = str(activity_id)
         model = (
             self.session.query(ActivityModel)
-            .filter(ActivityModel.id == activity_id)
+            .filter(ActivityModel.id == activity_id_str)
             .first()
         )
 
         return self._model_to_entity(model) if model else None
 
-    async def get_by_name(self, name: str) -> Optional[Activity]:
+    def get_by_name(self, name: str) -> Optional[Activity]:
         """Get an activity by its name."""
         model = (
             self.session.query(ActivityModel).filter(ActivityModel.name == name).first()
@@ -180,12 +181,13 @@ class SQLAlchemyActivityRepository(BaseRepository, ActivityRepository):
             self.session.rollback()
             raise SQLAlchemyError(f"Failed to update activity: {e}")
 
-    async def delete(self, activity_id: uuid.UUID) -> None:
+    async def delete(self, activity_id: Union[str, uuid.UUID]) -> None:
         """Delete an activity by ID."""
         try:
+            activity_id_str = str(activity_id)
             model = (
                 self.session.query(ActivityModel)
-                .filter(ActivityModel.id == activity_id)
+                .filter(ActivityModel.id == activity_id_str)
                 .first()
             )
 
@@ -503,12 +505,13 @@ class SQLAlchemyActivityRepository(BaseRepository, ActivityRepository):
             self.session.rollback()
             raise SQLAlchemyError(f"Failed to bulk update activities: {e}")
 
-    async def bulk_delete(self, activity_ids: list[uuid.UUID]) -> int:
+    async def bulk_delete(self, activity_ids: list[Union[str, uuid.UUID]]) -> int:
         """Bulk delete activities."""
         try:
+            activity_ids_str = [str(activity_id) for activity_id in activity_ids]
             result = (
                 self.session.query(ActivityModel)
-                .filter(ActivityModel.id.in_(activity_ids))
+                .filter(ActivityModel.id.in_(activity_ids_str))
                 .delete(synchronize_session=False)
             )
 
@@ -520,25 +523,27 @@ class SQLAlchemyActivityRepository(BaseRepository, ActivityRepository):
             raise SQLAlchemyError(f"Failed to bulk delete activities: {e}")
 
     async def get_activities_by_ids(
-        self, activity_ids: list[uuid.UUID]
+        self, activity_ids: list[Union[str, uuid.UUID]]
     ) -> list[Activity]:
         """Get multiple activities by their IDs."""
+        activity_ids_str = [str(activity_id) for activity_id in activity_ids]
         models = (
             self.session.query(ActivityModel)
-            .filter(ActivityModel.id.in_(activity_ids))
+            .filter(ActivityModel.id.in_(activity_ids_str))
             .all()
         )
 
         return [self._model_to_entity(model) for model in models]
 
     async def exists_by_name(
-        self, name: str, exclude_id: Optional[uuid.UUID] = None
+        self, name: str, exclude_id: Optional[Union[str, uuid.UUID]] = None
     ) -> bool:
         """Check if an activity with the given name exists."""
         query = self.session.query(ActivityModel).filter(ActivityModel.name == name)
 
         if exclude_id:
-            query = query.filter(ActivityModel.id != exclude_id)
+            exclude_id_str = str(exclude_id)
+            query = query.filter(ActivityModel.id != exclude_id_str)
 
         return query.first() is not None
 
@@ -679,7 +684,7 @@ class SQLAlchemyActivityPersonaLinkRepository(
     def __init__(self, session: Session):
         super().__init__(session, ActivityPersonaLinkModel)
 
-    async def create(
+    def create(
         self,
         persona_id: uuid.UUID,
         activity_id: uuid.UUID,
@@ -690,13 +695,17 @@ class SQLAlchemyActivityPersonaLinkRepository(
     ) -> ActivityPersonaLinkModel:
         """Create a new activity-persona link."""
         try:
+            # Convert UUIDs to strings for database storage
+            persona_id_str = str(persona_id)
+            activity_id_str = str(activity_id)
+            
             # Check if link already exists
             existing = (
                 self.session.query(ActivityPersonaLinkModel)
                 .filter(
                     and_(
-                        ActivityPersonaLinkModel.persona_id == persona_id,
-                        ActivityPersonaLinkModel.activity_id == activity_id,
+                        ActivityPersonaLinkModel.persona_id == persona_id_str,
+                        ActivityPersonaLinkModel.activity_id == activity_id_str,
                     )
                 )
                 .first()
@@ -708,8 +717,8 @@ class SQLAlchemyActivityPersonaLinkRepository(
                 )
 
             model = ActivityPersonaLinkModel(
-                persona_id=persona_id,
-                activity_id=activity_id,
+                persona_id=persona_id_str,
+                activity_id=activity_id_str,
                 priority=priority,
                 notes=notes,
                 is_primary=is_primary,
@@ -730,7 +739,7 @@ class SQLAlchemyActivityPersonaLinkRepository(
                 str(activity_id), str(persona_id)
             )
 
-    async def get_by_ids(
+    def get_by_ids(
         self, persona_id: uuid.UUID, activity_id: uuid.UUID
     ) -> Optional[ActivityPersonaLinkModel]:
         """Get a link by persona and activity IDs."""
@@ -738,8 +747,8 @@ class SQLAlchemyActivityPersonaLinkRepository(
             self.session.query(ActivityPersonaLinkModel)
             .filter(
                 and_(
-                    ActivityPersonaLinkModel.persona_id == persona_id,
-                    ActivityPersonaLinkModel.activity_id == activity_id,
+                    ActivityPersonaLinkModel.persona_id == str(persona_id),
+                    ActivityPersonaLinkModel.activity_id == str(activity_id),
                 )
             )
             .first()
@@ -754,7 +763,7 @@ class SQLAlchemyActivityPersonaLinkRepository(
     ) -> list[ActivityPersonaLinkModel]:
         """Get all links for a persona."""
         query = self.session.query(ActivityPersonaLinkModel).filter(
-            ActivityPersonaLinkModel.persona_id == persona_id
+            ActivityPersonaLinkModel.persona_id == str(persona_id)
         )
 
         if priority_filter:
@@ -773,7 +782,7 @@ class SQLAlchemyActivityPersonaLinkRepository(
     ) -> list[ActivityPersonaLinkModel]:
         """Get all links for an activity."""
         query = self.session.query(ActivityPersonaLinkModel).filter(
-            ActivityPersonaLinkModel.activity_id == activity_id
+            ActivityPersonaLinkModel.activity_id == str(activity_id)
         )
 
         offset = (page - 1) * per_page
@@ -805,8 +814,8 @@ class SQLAlchemyActivityPersonaLinkRepository(
                 self.session.query(ActivityPersonaLinkModel)
                 .filter(
                     and_(
-                        ActivityPersonaLinkModel.persona_id == persona_id,
-                        ActivityPersonaLinkModel.activity_id == activity_id,
+                        ActivityPersonaLinkModel.persona_id == str(persona_id),
+                        ActivityPersonaLinkModel.activity_id == str(activity_id),
                     )
                 )
                 .delete()
@@ -860,7 +869,7 @@ class SQLAlchemyActivityPersonaLinkRepository(
     ) -> int:
         """Count links for a persona."""
         query = self.session.query(ActivityPersonaLinkModel).filter(
-            ActivityPersonaLinkModel.persona_id == persona_id
+            ActivityPersonaLinkModel.persona_id == str(persona_id)
         )
 
         if priority_filter:
@@ -872,7 +881,7 @@ class SQLAlchemyActivityPersonaLinkRepository(
         """Count links for an activity."""
         return (
             self.session.query(ActivityPersonaLinkModel)
-            .filter(ActivityPersonaLinkModel.activity_id == activity_id)
+            .filter(ActivityPersonaLinkModel.activity_id == str(activity_id))
             .count()
         )
 

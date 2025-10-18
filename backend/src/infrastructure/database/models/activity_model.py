@@ -21,17 +21,22 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from sqlalchemy.types import Uuid
 
 from .base import Base
 
 # Conditional imports for database compatibility
 # Use String(36) for both testing and production to ensure compatibility
+# Conditional imports for database compatibility
+# Use String(36) for both testing and production to ensure compatibility
 from sqlalchemy import JSON as JSONType
+from sqlalchemy import String as UUIDType
+
+def uuid_column():
+    return UUIDType(36)  # UUIDs are 36 characters
 
 def uuid_default():
     import uuid
-    return uuid.uuid4()
+    return str(uuid.uuid4())
 
 
 class ActivityModel(Base):
@@ -44,7 +49,7 @@ class ActivityModel(Base):
     __tablename__ = "activities"
 
     # Primary key
-    id = Column(Uuid, primary_key=True, default=uuid_default)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default)
 
     # Basic information
     name = Column(String(255), nullable=False, unique=True, index=True)
@@ -149,17 +154,17 @@ class ActivityPersonaLinkModel(Base):
     __tablename__ = "activity_persona_links"
 
     # Primary key
-    id = Column(Uuid, primary_key=True, default=uuid_default)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default)
 
     # Foreign keys
     persona_id = Column(
-        Uuid,
+        uuid_column(),
         ForeignKey("personas.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     activity_id = Column(
-        Uuid,
+        uuid_column(),
         ForeignKey("activities.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

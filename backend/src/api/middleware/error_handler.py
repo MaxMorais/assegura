@@ -21,11 +21,12 @@ except ImportError as e:
     print(f"FastAPI dependencies not installed: {e}")
 
 from ...application.dto import ErrorResponse, ValidationErrorResponse
+from ...domain.activities.exceptions import ActivityAlreadyExistsError
 
 logger = logging.getLogger(__name__)
 
 
-class ErrorHandlingMiddleware:
+class ErrorHandlingMiddleware(BaseHTTPMiddleware):
     """Advanced error handling middleware with logging and monitoring."""
 
     def __init__(
@@ -55,7 +56,7 @@ class ErrorHandlingMiddleware:
         self.error_counts: dict[str, int] = {}
         self.last_errors: dict[str, datetime] = {}
 
-    async def __call__(self, request: "Request", call_next: Callable) -> "Response":
+    async def dispatch_func(self, request: "Request", call_next: Callable) -> "Response":
         """Process request with comprehensive error handling.
 
         Args:
@@ -93,6 +94,9 @@ class ErrorHandlingMiddleware:
 
         except RuntimeError as exc:
             return await self._handle_runtime_error(request, exc, request_id)
+
+        except ActivityAlreadyExistsError as exc:
+            return await self._handle_activity_already_exists_error(request, exc, request_id)
 
         except Exception as exc:
             return await self._handle_unexpected_error(request, exc, request_id)
@@ -419,6 +423,62 @@ class ErrorHandlingMiddleware:
             )
         except NameError:
             return {"error": "Runtime error", "status_code": 500}
+
+    async def _handle_activity_already_exists_error(
+        self, request: "Request", exc: ActivityAlreadyExistsError, request_id: str
+    ) -> "JSONResponse":
+        """Handle activity already exists domain errors.
+
+        Args:
+            request: FastAPI request object
+            exc: Activity already exists error
+            request_id: Request tracking ID
+
+        Returns:
+            Standardized conflict error response
+        """
+        if self.log_errors:
+            logger.warning(
+                f"Activity already exists error in {request.method} {request.url}: {str(exc)}",
+                extra={
+                    "request_id": request_id,
+                    "method": request.method,
+                    "url": str(request.url),
+                    "field": exc.field,
+                    "value": exc.value,
+                    "client_ip": self._get_client_ip(request),
+                },
+            )
+
+        error_response = ErrorResponse(
+            error="ActivityAlreadyExists",
+            detail=str(exc),
+            details={
+                "request_id": request_id,
+                "field": exc.field,
+                "value": exc.value,
+                "error_type": "ActivityAlreadyExistsError"
+            },
+        )
+
+        if self.debug:
+            error_response.details.update(
+                {
+                    "method": request.method,
+                    "url": str(request.url),
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+            )
+
+        self._track_error("ActivityAlreadyExistsError")
+
+        try:
+            return JSONResponse(
+                status_code=status.HTTP_409_CONFLICT,
+                content=error_response.model_dump(),
+            )
+        except NameError:
+            return {"error": str(exc), "status_code": 409}
 
     async def _handle_unexpected_error(
         self, request: "Request", exc: Exception, request_id: str

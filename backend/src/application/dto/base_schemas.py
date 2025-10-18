@@ -179,20 +179,21 @@ class FilterParams(BaseDTO):
 class ErrorResponse(BaseDTO):
     """Standard error response format."""
 
-    error: str = Field(description="Error type or code")
-    message: str = Field(description="Human-readable error message")
+    detail: str = Field(description="Error message")
+    error: Optional[str] = Field(default=None, description="Error type or code")
     details: Optional[dict[str, Any]] = Field(
         default=None, description="Additional error details"
     )
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Error timestamp"
+    timestamp: str = Field(
+        default_factory=lambda: datetime.utcnow().isoformat(),
+        description="Error timestamp in ISO format"
     )
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
+                "detail": "The provided data is invalid",
                 "error": "ValidationError",
-                "message": "The provided data is invalid",
                 "details": {"field": "email", "issue": "Invalid email format"},
                 "timestamp": "2025-10-15T10:30:00Z",
             }

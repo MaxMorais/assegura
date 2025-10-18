@@ -181,12 +181,28 @@ class DatabaseManager:
 # Global database manager instance
 db_manager = DatabaseManager()
 
+# Test session override for integration tests
+_test_session = None
+
+
+def set_test_session(session: Session) -> None:
+    """Set the test session for integration tests."""
+    global _test_session
+    _test_session = session
+
 
 # Dependency injection functions for FastAPI
 def get_sync_db() -> Generator[Session, None, None]:
     """FastAPI dependency for synchronous database sessions."""
-    with db_manager.get_sync_session() as session:
-        yield session
+    import os
+
+    if os.environ.get("TESTING") == "true" and _test_session is not None:
+        print(f"DEBUG: Returning test session: {_test_session}")
+        yield _test_session
+    else:
+        print("DEBUG: Returning new session from db_manager")
+        with db_manager.get_sync_session() as session:
+            yield session
 
 
 async def get_async_db() -> AsyncGenerator[AsyncSession, None]:

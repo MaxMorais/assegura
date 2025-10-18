@@ -10,7 +10,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from .erpnext_modules import ERPNextModuleValidator
 from .exceptions import (
@@ -177,13 +177,13 @@ class Activity:
         test_data_requirements: Optional[dict[str, Any]] = None,
         is_active: bool = True,
         tags: Optional[list[str]] = None,
-        id: Optional[uuid.UUID] = None,
+        id: Optional[Union[str, uuid.UUID]] = None,
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None,
         version: str = "1.0.0",
     ):
         """Initialize an Activity entity."""
-        self.id = id or uuid.uuid4()
+        self.id = str(id) if id else str(uuid.uuid4())
         self.name = name
         self.description = description
         self.erpnext_module = erpnext_module

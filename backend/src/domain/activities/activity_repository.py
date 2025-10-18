@@ -6,7 +6,7 @@ following the repository pattern to abstract data access concerns from the domai
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from .activity import Activity
 
@@ -34,7 +34,7 @@ class ActivityRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_id(self, activity_id: uuid.UUID) -> Optional[Activity]:
+    async def get_by_id(self, activity_id: Union[str, uuid.UUID]) -> Optional[Activity]:
         """Get an activity by its ID.
 
         Args:
@@ -83,7 +83,7 @@ class ActivityRepository(ABC):
         pass
 
     @abstractmethod
-    async def delete(self, activity_id: uuid.UUID) -> None:
+    async def delete(self, activity_id: Union[str, uuid.UUID]) -> None:
         """Delete an activity by ID.
 
         Args:
@@ -283,7 +283,7 @@ class ActivityRepository(ABC):
 
     @abstractmethod
     async def bulk_update_status(
-        self, activity_ids: list[uuid.UUID], is_active: bool
+        self, activity_ids: list[Union[str, uuid.UUID]], is_active: bool
     ) -> int:
         """Bulk update activity status.
 
@@ -297,7 +297,7 @@ class ActivityRepository(ABC):
         pass
 
     @abstractmethod
-    async def bulk_delete(self, activity_ids: list[uuid.UUID]) -> int:
+    async def bulk_delete(self, activity_ids: list[Union[str, uuid.UUID]]) -> int:
         """Bulk delete activities.
 
         Args:
@@ -310,7 +310,7 @@ class ActivityRepository(ABC):
 
     @abstractmethod
     async def get_activities_by_ids(
-        self, activity_ids: list[uuid.UUID]
+        self, activity_ids: list[Union[str, uuid.UUID]]
     ) -> list[Activity]:
         """Get multiple activities by their IDs.
 
@@ -324,7 +324,7 @@ class ActivityRepository(ABC):
 
     @abstractmethod
     async def exists_by_name(
-        self, name: str, exclude_id: Optional[uuid.UUID] = None
+        self, name: str, exclude_id: Optional[Union[str, uuid.UUID]] = None
     ) -> bool:
         """Check if an activity with the given name exists.
 
@@ -372,7 +372,7 @@ class ActivityPersonaLinkRepository(ABC):
     """Abstract repository interface for Activity-Persona link entities."""
 
     @abstractmethod
-    async def create(
+    def create(
         self,
         persona_id: uuid.UUID,
         activity_id: uuid.UUID,
@@ -400,7 +400,7 @@ class ActivityPersonaLinkRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_ids(
+    def get_by_ids(
         self, persona_id: uuid.UUID, activity_id: uuid.UUID
     ) -> Optional["ActivityPersonaLink"]:
         """Get a link by persona and activity IDs.
