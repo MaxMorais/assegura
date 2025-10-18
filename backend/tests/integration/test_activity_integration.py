@@ -18,6 +18,7 @@ from src.application.dto.activity_schemas import (
     ActivityUpdateRequestDTO,
     ActivityFilterDTO,
 )
+from src.domain.activities.exceptions import ActivityNotFoundError
 from src.application.services.activity_service import ActivityApplicationService
 from src.infrastructure.database.repositories.activity_repository import (
     SQLAlchemyActivityPersonaLinkRepository,
@@ -155,8 +156,8 @@ class TestActivityIntegration:
         await activity_service.delete_activity(activity_id)
 
         # Verify deletion
-        deleted_activity = await activity_service.get_activity_by_id(activity_id)
-        assert deleted_activity is None
+        with pytest.raises(ActivityNotFoundError):
+            await activity_service.get_activity_by_id(activity_id)
 
     async def test_activity_filtering_and_search(
         self,

@@ -56,12 +56,12 @@ class ActivityApplicationService:
 
     # Activity CRUD Operations
 
-    def create_activity(
+    async def create_activity(
         self, request: ActivityCreateRequestDTO
     ) -> ActivityResponseDTO:
         """Create a new activity."""
         # Check if activity with same name already exists
-        existing = self.activity_repository.get_by_name(request.name)
+        existing = await self.activity_repository.get_by_name(request.name)
         if existing:
             raise ActivityAlreadyExistsError("name", request.name)
 
@@ -88,7 +88,7 @@ class ActivityApplicationService:
         self.domain_service.validate_activity_creation(activity)
 
         # Save to repository
-        saved_activity = self.activity_repository.create(activity)
+        saved_activity = await self.activity_repository.create(activity)
 
         return self._activity_to_dto(saved_activity)
 

@@ -95,7 +95,7 @@ class SQLAlchemyActivityRepository(BaseRepository, ActivityRepository):
             updated_at=entity.updated_at,
         )
 
-    def create(self, activity: Activity) -> Activity:
+    async def create(self, activity: Activity) -> Activity:
         """Create a new activity in the repository."""
         try:
             # Check if activity with same name exists
@@ -134,7 +134,7 @@ class SQLAlchemyActivityRepository(BaseRepository, ActivityRepository):
 
         return self._model_to_entity(model) if model else None
 
-    def get_by_name(self, name: str) -> Optional[Activity]:
+    async def get_by_name(self, name: str) -> Optional[Activity]:
         """Get an activity by its name."""
         model = (
             self.session.query(ActivityModel).filter(ActivityModel.name == name).first()
