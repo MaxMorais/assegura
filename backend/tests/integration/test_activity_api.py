@@ -29,13 +29,11 @@ class TestActivityAPI:
 
         # Create test persona for relationship tests
         self.test_persona = PersonaModel(
-            id=uuid.uuid4(),
+            id=str(uuid.uuid4()),
             name="Test Persona",
             description="Test persona for integration tests",
-            erpnext_roles=["System Manager"],
-            permissions=["read", "write"],
-            experience_level="intermediate",
-            business_context="Test context",
+            erpnext_roles="System Manager",  # Should be a string, not a list
+            permissions="read:write",  # Should be a string, not a list
             is_active=True,
         )
         self.db.add(self.test_persona)

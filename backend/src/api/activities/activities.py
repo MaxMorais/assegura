@@ -34,6 +34,9 @@ from src.infrastructure.database.repositories.activity_repository import (
     SQLAlchemyActivityPersonaLinkRepository,
     SQLAlchemyActivityRepository,
 )
+from src.infrastructure.database.repositories.persona_repository import (
+    SQLAlchemyPersonaRepository,
+)
 
 # Create router
 router = APIRouter(prefix="/activities", tags=["activities"])
@@ -42,12 +45,13 @@ router = APIRouter(prefix="/activities", tags=["activities"])
 def get_activity_service(db: Session = Depends(get_sync_db)) -> ActivityApplicationService:
     """Dependency to get activity application service."""
     activity_repo = SQLAlchemyActivityRepository(db)
+    persona_repo = SQLAlchemyPersonaRepository(db)
     link_repo = SQLAlchemyActivityPersonaLinkRepository(db)
-    return ActivityApplicationService(activity_repo, link_repo)
+    return ActivityApplicationService(activity_repo, persona_repo, link_repo)
 
 
 @router.post(
-    "",
+    "/",
     response_model=ActivityResponseDTO,
     status_code=status.HTTP_201_CREATED,
     summary="Create new activity",
@@ -311,10 +315,8 @@ async def bulk_update_activity_status(
 ) -> dict[str, int]:
     """Bulk update activity status."""
     try:
-        count = await service.bulk_update_activity_status(
-            request.activity_ids, request.is_active
-        )
-        return {"updated_count": count}
+        result = await service.bulk_activity_operation(request)
+        return {"updated_count": result.updated_count}
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

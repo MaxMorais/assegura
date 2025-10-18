@@ -6,7 +6,7 @@ fulfill activity-related use cases.
 """
 
 import uuid
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from ...domain.activities.activity import Activity
 from ...domain.activities.activity_service import (
@@ -88,22 +88,28 @@ class ActivityApplicationService:
 
         return self._activity_to_dto(saved_activity)
 
-    async def get_activity_by_id(self, activity_id: str) -> ActivityResponseDTO:
+    async def get_activity_by_id(self, activity_id: Union[str, uuid.UUID]) -> ActivityResponseDTO:
         """Get activity by ID."""
-        activity = await self.activity_repository.get_by_id(uuid.UUID(activity_id))
+        if isinstance(activity_id, str):
+            activity_id = uuid.UUID(activity_id)
+        activity = await self.activity_repository.get_by_id(activity_id)
         if not activity:
             raise ActivityNotFoundError(activity_id)
 
         return self._activity_to_dto(activity)
 
     async def update_activity(
-        self, activity_id: str, request: ActivityUpdateRequestDTO
+        self, activity_id: Union[str, uuid.UUID], request: ActivityUpdateRequestDTO
     ) -> ActivityResponseDTO:
         """Update an existing activity."""
+        # Convert activity_id to UUID if it's a string
+        if isinstance(activity_id, str):
+            activity_id = uuid.UUID(activity_id)
+        
         # Get existing activity
-        activity = await self.activity_repository.get_by_id(uuid.UUID(activity_id))
+        activity = await self.activity_repository.get_by_id(activity_id)
         if not activity:
-            raise ActivityNotFoundError(activity_id)
+            raise ActivityNotFoundError(str(activity_id))
 
         # Apply updates
         if request.name is not None:
@@ -145,9 +151,7 @@ class ActivityApplicationService:
                 activity.deactivate()
 
         # Validate with domain service
-        original_activity = await self.activity_repository.get_by_id(
-            uuid.UUID(activity_id)
-        )
+        original_activity = await self.activity_repository.get_by_id(activity_id)
         self.domain_service.validate_activity_update(original_activity, activity)
 
         # Save updates
@@ -155,19 +159,21 @@ class ActivityApplicationService:
 
         return self._activity_to_dto(updated_activity)
 
-    async def delete_activity(self, activity_id: str) -> None:
+    async def delete_activity(self, activity_id: Union[str, uuid.UUID]) -> None:
         """Delete an activity."""
-        activity = await self.activity_repository.get_by_id(uuid.UUID(activity_id))
+        # Convert activity_id to UUID if it's a string
+        if isinstance(activity_id, str):
+            activity_id = uuid.UUID(activity_id)
+        
+        activity = await self.activity_repository.get_by_id(activity_id)
         if not activity:
-            raise ActivityNotFoundError(activity_id)
+            raise ActivityNotFoundError(str(activity_id))
 
         # Remove all persona links first
-        await self.activity_persona_link_repository.delete_by_activity_id(
-            uuid.UUID(activity_id)
-        )
+        await self.activity_persona_link_repository.delete_by_activity_id(activity_id)
 
         # Delete the activity
-        await self.activity_repository.delete(uuid.UUID(activity_id))
+        await self.activity_repository.delete(activity_id)
 
     async def list_activities(
         self,
@@ -222,22 +228,30 @@ class ActivityApplicationService:
 
         return ActivityStatisticsResponseDTO(**stats)
 
-    async def activate_activity(self, activity_id: str) -> ActivityResponseDTO:
+    async def activate_activity(self, activity_id: Union[str, uuid.UUID]) -> ActivityResponseDTO:
         """Activate an activity."""
-        activity = await self.activity_repository.get_by_id(uuid.UUID(activity_id))
+        # Convert activity_id to UUID if it's a string
+        if isinstance(activity_id, str):
+            activity_id = uuid.UUID(activity_id)
+        
+        activity = await self.activity_repository.get_by_id(activity_id)
         if not activity:
-            raise ActivityNotFoundError(activity_id)
+            raise ActivityNotFoundError(str(activity_id))
 
         activity.activate()
         updated_activity = await self.activity_repository.update(activity)
 
         return self._activity_to_dto(updated_activity)
 
-    async def deactivate_activity(self, activity_id: str) -> ActivityResponseDTO:
+    async def deactivate_activity(self, activity_id: Union[str, uuid.UUID]) -> ActivityResponseDTO:
         """Deactivate an activity."""
-        activity = await self.activity_repository.get_by_id(uuid.UUID(activity_id))
+        # Convert activity_id to UUID if it's a string
+        if isinstance(activity_id, str):
+            activity_id = uuid.UUID(activity_id)
+        
+        activity = await self.activity_repository.get_by_id(activity_id)
         if not activity:
-            raise ActivityNotFoundError(activity_id)
+            raise ActivityNotFoundError(str(activity_id))
 
         activity.deactivate()
         updated_activity = await self.activity_repository.update(activity)

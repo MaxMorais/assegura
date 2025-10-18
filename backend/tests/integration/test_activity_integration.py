@@ -210,7 +210,7 @@ class TestActivityIntegration:
             accounts_filter, page=1, per_page=10
         )
         assert accounts_result.total == 2
-        assert all(a.erpnext_module == "Accounts" for a in accounts_result.activities)
+        assert all(a.erpnext_module == "Accounts" for a in accounts_result.items)
 
         # Test action type filter
         create_filter = ActivityFilterDTO(action_type="create")
@@ -218,7 +218,7 @@ class TestActivityIntegration:
             create_filter, page=1, per_page=10
         )
         assert create_result.total == 1
-        assert create_result.activities[0].action_type == "create"
+        assert create_result.items[0].action_type == "create"
 
         # Test complexity filter
         low_complexity_filter = ActivityFilterDTO(complexity_score=1)
@@ -226,7 +226,7 @@ class TestActivityIntegration:
             low_complexity_filter, page=1, per_page=10
         )
         assert low_complexity_result.total == 1
-        assert low_complexity_result.activities[0].complexity_score == 1
+        assert low_complexity_result.items[0].complexity_score == 1
 
         # Test active status filter
         active_filter = ActivityFilterDTO(is_active=True)
@@ -234,7 +234,7 @@ class TestActivityIntegration:
             active_filter, page=1, per_page=10
         )
         assert active_result.total == 3
-        assert all(a.is_active for a in active_result.activities)
+        assert all(a.is_active for a in active_result.items)
 
         # Test search
         search_filter = ActivityFilterDTO(search="invoice")
@@ -251,8 +251,8 @@ class TestActivityIntegration:
             combined_filter, page=1, per_page=10
         )
         assert combined_result.total == 1
-        assert combined_result.activities[0].erpnext_module == "Accounts"
-        assert combined_result.activities[0].is_active is True
+        assert combined_result.items[0].erpnext_module == "Accounts"
+        assert combined_result.items[0].is_active is True
 
     async def test_activity_bulk_operations(
         self,
@@ -558,9 +558,10 @@ class TestActivityAPIIntegration:
     ):
         """Test activity retrieval via API."""
 
-        # Create activity first
+        # Create activity first with unique name
+        activity_data = {**sample_activity_data, "name": "Test Get Activity API"}
         create_response = await async_client.post(
-            "/api/v1/activities/", json=sample_activity_data
+            "/api/v1/activities/", json=activity_data
         )
         created_activity = create_response.json()
         activity_id = created_activity["id"]
@@ -606,7 +607,7 @@ class TestActivityAPIIntegration:
         response = await async_client.get("/api/v1/activities/")
         assert response.status_code == 200
         data = response.json()
-        assert "activities" in data
+        assert "items" in data
         assert "total" in data
         assert "page" in data
         assert "per_page" in data
@@ -618,7 +619,7 @@ class TestActivityAPIIntegration:
         data = response.json()
         assert data["total"] >= 2
         assert all(
-            activity["erpnext_module"] == "CRM" for activity in data["activities"]
+            activity["erpnext_module"] == "CRM" for activity in data["items"]
         )
 
         # Test search
@@ -632,9 +633,10 @@ class TestActivityAPIIntegration:
     ):
         """Test activity update via API."""
 
-        # Create activity
+        # Create activity with unique name
+        activity_data = {**sample_activity_data, "name": "Test Update Activity API"}
         create_response = await async_client.post(
-            "/api/v1/activities/", json=sample_activity_data
+            "/api/v1/activities/", json=activity_data
         )
         created_activity = create_response.json()
         activity_id = created_activity["id"]
@@ -664,9 +666,10 @@ class TestActivityAPIIntegration:
     ):
         """Test activity deletion via API."""
 
-        # Create activity
+        # Create activity with unique name
+        activity_data = {**sample_activity_data, "name": "Test Delete Activity API"}
         create_response = await async_client.post(
-            "/api/v1/activities/", json=sample_activity_data
+            "/api/v1/activities/", json=activity_data
         )
         created_activity = create_response.json()
         activity_id = created_activity["id"]
@@ -692,7 +695,7 @@ class TestActivityAPIIntegration:
             activity_ids.append(response.json()["id"])
 
         # Test bulk status update
-        bulk_update_data = {"activity_ids": activity_ids, "is_active": False}
+        bulk_update_data = {"activity_ids": activity_ids, "action": "deactivate"}
         response = await async_client.post(
             "/api/v1/activities/bulk/update-status", json=bulk_update_data
         )
@@ -732,7 +735,7 @@ class TestActivityAPIIntegration:
         assert "inactive" in data
         assert "by_module" in data
         assert "by_action_type" in data
-        assert "by_complexity" in data
+        assert "complexity_distribution" in data
         assert "avg_duration" in data
         assert "total_duration" in data
 

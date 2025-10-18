@@ -3,6 +3,7 @@
 import os
 import pytest
 from httpx import AsyncClient
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from src.api.main import app
@@ -42,4 +43,11 @@ def db_session():
 async def async_client():
     """Provide an async test client."""
     async with AsyncClient(app=app, base_url="http://testserver") as client:
+        yield client
+
+
+@pytest.fixture
+def client():
+    """Provide a synchronous test client."""
+    with TestClient(app) as client:
         yield client
