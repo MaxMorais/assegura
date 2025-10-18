@@ -471,6 +471,9 @@ class ActivityService:
                 "complexity_distribution": {},
                 "avg_duration": 0,
                 "total_duration": 0,
+                "avg_complexity": 0,
+                "most_common_module": "",
+                "most_common_action": "",
             }
 
         stats = {

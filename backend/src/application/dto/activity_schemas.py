@@ -292,7 +292,7 @@ class ActivityResponseDTO(BaseModel):
 class ActivityListResponseDTO(BaseModel):
     """Response DTO for paginated activity lists."""
 
-    items: list[ActivityResponseDTO] = Field(..., description="List of activities")
+    activities: list[ActivityResponseDTO] = Field(..., description="List of activities")
     total: int = Field(..., ge=0, description="Total number of activities")
     page: int = Field(..., ge=1, description="Current page number")
     per_page: int = Field(..., ge=1, le=100, description="Items per page")
@@ -302,7 +302,7 @@ class ActivityListResponseDTO(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "items": [],  # Would contain ActivityResponseDTO objects
+                "activities": [],  # Would contain ActivityResponseDTO objects
                 "total": 25,
                 "page": 1,
                 "per_page": 10,
@@ -330,7 +330,7 @@ class ActivityStatisticsResponseDTO(BaseModel):
     avg_duration: float = Field(..., ge=0, description="Average estimated duration")
     total_duration: int = Field(..., ge=0, description="Total estimated duration")
     avg_complexity: float = Field(
-        ..., ge=1, le=5, description="Average complexity score"
+        ..., ge=0, le=5, description="Average complexity score"
     )
     most_common_module: str = Field(..., description="Most frequently used module")
     most_common_action: str = Field(..., description="Most frequently used action type")

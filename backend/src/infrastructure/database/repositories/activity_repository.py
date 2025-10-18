@@ -165,7 +165,7 @@ class SQLAlchemyActivityRepository(BaseRepository, ActivityRepository):
             model.estimated_duration = activity.estimated_duration
             model.prerequisites = activity.prerequisites_str
             model.postconditions = activity.postconditions_str
-            model.test_data_requirements = activity.test_data_requirements_json
+            model.test_data_requirements = activity.test_data_requirements
             model.tags = activity.tags_str
             model.is_active = activity.is_active
             model.version = activity.version

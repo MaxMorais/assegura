@@ -17,6 +17,7 @@ from ...domain.activities.exceptions import (
     ActivityNotFoundError,
     ActivityPersonaLinkAlreadyExistsError,
     ActivityPersonaLinkNotFoundError,
+    ActivityValidationError,
 )
 from ..dto.activity_schemas import (
     ActivityBulkLinkRequestDTO,
@@ -213,7 +214,7 @@ class ActivityApplicationService:
         activity_dtos = [self._activity_to_dto(activity) for activity in activities]
 
         return ActivityListResponseDTO(
-            items=activity_dtos,
+            activities=activity_dtos,
             total=total,
             page=page,
             per_page=per_page,
@@ -449,19 +450,24 @@ class ActivityApplicationService:
         )
 
     async def get_similar_activities(
-        self, activity_id: str, similarity_threshold: float = 0.6
+        self, activity_id: Union[str, uuid.UUID], limit: int = 10, min_similarity: float = 0.6
     ) -> list[dict[str, Any]]:
         """Find activities similar to the given activity."""
-        target_activity = await self.activity_repository.get_by_id(
-            uuid.UUID(activity_id)
-        )
+        # Convert to UUID if it's a string
+        if isinstance(activity_id, str):
+            activity_id = uuid.UUID(activity_id)
+        
+        target_activity = await self.activity_repository.get_by_id(activity_id)
         if not target_activity:
             raise ActivityNotFoundError(activity_id)
 
         all_activities = await self.activity_repository.get_all()
         similar_activities = self.domain_service.find_similar_activities(
-            target_activity, all_activities, similarity_threshold
+            target_activity, all_activities, min_similarity
         )
+
+        # Limit results
+        similar_activities = similar_activities[:limit]
 
         # Convert to DTOs
         result = []
@@ -554,6 +560,19 @@ class ActivityApplicationService:
             failed_activities=failed_activities,
             errors=errors,
         )
+
+    async def validate_activity(self, activity_id: Union[str, uuid.UUID]) -> dict[str, Any]:
+        """Validate activity configuration and return validation results."""
+        try:
+            activity = await self.activity_repository.get_by_id(activity_id)
+            if not activity:
+                raise ActivityNotFoundError(f"Activity with ID {activity_id} not found")
+            
+            return self.domain_service.validate_activity_configuration(activity)
+        except ActivityNotFoundError:
+            raise
+        except Exception as e:
+            raise ActivityValidationError("validation", f"Validation failed: {str(e)}")
 
     # Private helper methods
 

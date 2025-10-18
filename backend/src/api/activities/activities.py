@@ -13,12 +13,14 @@ from sqlalchemy.orm import Session
 
 from src.application.dto.activity_schemas import (
     ActivityBulkOperationRequestDTO,
+    ActivityBulkOperationResponseDTO,
     ActivityCreateRequestDTO,
     ActivityFilterDTO,
     ActivityListResponseDTO,
     ActivityPersonaLinkCreateRequestDTO,
     ActivityPersonaLinkResponseDTO,
     ActivityResponseDTO,
+    ActivityStatisticsResponseDTO,
     ActivityUpdateRequestDTO,
 )
 from src.application.services.activity_service import ActivityApplicationService
@@ -83,6 +85,82 @@ async def create_activity(
 
 
 @router.get(
+    "/",
+    response_model=ActivityListResponseDTO,
+    summary="List activities",
+    description="Retrieve a paginated list of activities with optional filtering.",
+)
+async def list_activities(
+    erpnext_module: Optional[str] = Query(None, description="Filter by ERPNext module"),
+    action_type: Optional[str] = Query(None, description="Filter by action type"),
+    target_doctype: Optional[str] = Query(None, description="Filter by target doctype"),
+    complexity_score: Optional[int] = Query(None, ge=1, le=5, description="Filter by complexity score"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    tags: Optional[list[str]] = Query(None, description="Filter by tags (comma-separated)"),
+    min_duration: Optional[int] = Query(None, ge=0, description="Minimum duration in seconds"),
+    max_duration: Optional[int] = Query(None, ge=0, description="Maximum duration in seconds"),
+    search: Optional[str] = Query(None, description="Search in name and description"),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(20, ge=1, le=100, description="Items per page"),
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> ActivityListResponseDTO:
+    """List activities with filtering and pagination."""
+    try:
+        # Build filter DTO
+        filters = None
+        if any([
+            erpnext_module is not None,
+            action_type is not None,
+            target_doctype is not None,
+            complexity_score is not None,
+            is_active is not None,
+            tags is not None,
+            min_duration is not None,
+            max_duration is not None,
+            search is not None,
+        ]):
+            filters = ActivityFilterDTO(
+                erpnext_module=erpnext_module,
+                action_type=action_type,
+                target_doctype=target_doctype,
+                complexity_score=complexity_score,
+                is_active=is_active,
+                tags=tags,
+                min_duration=min_duration,
+                max_duration=max_duration,
+                search=search,
+            )
+        
+        activities = await service.list_activities(filters, page, per_page)
+        return activities
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}",
+        )
+
+
+@router.get(
+    "/statistics",
+    response_model=ActivityStatisticsResponseDTO,
+    summary="Get activity statistics",
+    description="Retrieve comprehensive statistics about activities",
+)
+async def get_activity_statistics(
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> ActivityStatisticsResponseDTO:
+    """Get activity statistics."""
+    try:
+        stats = await service.get_activity_statistics()
+        return stats
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}",
+        )
+
+
+@router.get(
     "/{activity_id}",
     response_model=ActivityResponseDTO,
     summary="Get activity by ID",
@@ -113,61 +191,11 @@ async def get_activity(
         )
 
 
-@router.get(
-    "/",
-    response_model=ActivityListResponseDTO,
-    summary="List activities with filtering",
-    description="Retrieve activities with optional filtering, search, and pagination",
-)
-async def list_activities(
-    page: int = Query(1, ge=1, description="Page number"),
-    per_page: int = Query(20, ge=1, le=100, description="Items per page"),
-    erpnext_module: Optional[str] = Query(None, description="Filter by ERPNext module"),
-    action_type: Optional[str] = Query(None, description="Filter by action type"),
-    target_doctype: Optional[str] = Query(None, description="Filter by target DocType"),
-    complexity_score: Optional[int] = Query(
-        None, ge=1, le=5, description="Filter by complexity score"
-    ),
-    is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    search: Optional[str] = Query(None, description="Search in name and description"),
-    tags: Optional[str] = Query(None, description="Filter by tags (comma-separated)"),
-    min_duration: Optional[int] = Query(
-        None, ge=0, description="Minimum estimated duration"
-    ),
-    max_duration: Optional[int] = Query(
-        None, ge=0, description="Maximum estimated duration"
-    ),
-    service: ActivityApplicationService = Depends(get_activity_service),
-) -> ActivityListResponseDTO:
-    """List activities with filtering and pagination."""
-    try:
-        # Build filter request
-        filters = ActivityFilterDTO(
-            erpnext_module=erpnext_module,
-            action_type=action_type,
-            target_doctype=target_doctype,
-            complexity_score=complexity_score,
-            is_active=is_active,
-            search=search,
-            tags_any=[tag.strip() for tag in tags.split(",")] if tags else None,
-            min_duration=min_duration,
-            max_duration=max_duration,
-        )
-
-        result = await service.list_activities(filters, page, per_page)
-        return result
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}",
-        )
-
-
 @router.put(
     "/{activity_id}",
     response_model=ActivityResponseDTO,
     summary="Update activity",
-    description="Update an existing activity with new data and validation",
+    description="Update an existing activity with new data.",
 )
 async def update_activity(
     activity_id: uuid.UUID,
@@ -182,6 +210,11 @@ async def update_activity(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Activity with ID {activity_id} not found",
+        )
+    except ActivityAlreadyExistsError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Activity already exists: {str(e)}",
         )
     except ActivityValidationError as e:
         raise HTTPException(
@@ -199,7 +232,7 @@ async def update_activity(
     "/{activity_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete activity",
-    description="Delete an activity and all its relationships",
+    description="Delete an activity by its unique identifier.",
 )
 async def delete_activity(
     activity_id: uuid.UUID,
@@ -213,89 +246,6 @@ async def delete_activity(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Activity with ID {activity_id} not found",
         )
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}",
-        )
-
-
-@router.post(
-    "/search",
-    response_model=ActivityListResponseDTO,
-    summary="Search activities",
-    description="Advanced search for activities with multiple criteria",
-)
-async def search_activities(
-    request: ActivityFilterDTO,
-    service: ActivityApplicationService = Depends(get_activity_service),
-) -> ActivityListResponseDTO:
-    """Search activities with advanced criteria."""
-    try:
-        result = await service.search_activities(request)
-        return result
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}",
-        )
-
-
-@router.get(
-    "/modules/{module_name}",
-    response_model=list[ActivityResponseDTO],
-    summary="Get activities by module",
-    description="Retrieve all activities for a specific ERPNext module",
-)
-async def get_activities_by_module(
-    module_name: str,
-    service: ActivityApplicationService = Depends(get_activity_service),
-) -> list[ActivityResponseDTO]:
-    """Get activities by ERPNext module."""
-    try:
-        activities = await service.get_activities_by_module(module_name)
-        return activities
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}",
-        )
-
-
-@router.get(
-    "/doctypes/{doctype_name}",
-    response_model=list[ActivityResponseDTO],
-    summary="Get activities by DocType",
-    description="Retrieve all activities targeting a specific DocType",
-)
-async def get_activities_by_doctype(
-    doctype_name: str,
-    service: ActivityApplicationService = Depends(get_activity_service),
-) -> list[ActivityResponseDTO]:
-    """Get activities by target DocType."""
-    try:
-        activities = await service.get_activities_by_doctype(doctype_name)
-        return activities
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}",
-        )
-
-
-@router.get(
-    "/statistics",
-    response_model=dict[str, Any],
-    summary="Get activity statistics",
-    description="Retrieve comprehensive statistics about activities",
-)
-async def get_activity_statistics(
-    service: ActivityApplicationService = Depends(get_activity_service),
-) -> dict[str, Any]:
-    """Get activity statistics."""
-    try:
-        stats = await service.get_activity_statistics()
-        return stats
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -324,20 +274,43 @@ async def bulk_update_activity_status(
         )
 
 
-@router.delete(
+@router.post(
     "/bulk",
-    response_model=dict[str, int],
-    summary="Bulk delete activities",
-    description="Delete multiple activities at once",
+    response_model=ActivityBulkOperationResponseDTO,
+    summary="Bulk operations on activities",
+    description="Perform bulk operations (activate, deactivate, delete) on multiple activities",
 )
-async def bulk_delete_activities(
-    activity_ids: list[uuid.UUID],
+async def bulk_activity_operations(
+    request: ActivityBulkOperationRequestDTO,
     service: ActivityApplicationService = Depends(get_activity_service),
-) -> dict[str, int]:
-    """Bulk delete activities."""
+) -> ActivityBulkOperationResponseDTO:
+    """Perform bulk operations on activities."""
     try:
-        count = await service.bulk_delete_activities(activity_ids)
-        return {"deleted_count": count}
+        result = await service.bulk_activity_operation(request)
+        return result
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}",
+        )
+
+
+@router.post(
+    "/search",
+    response_model=ActivityListResponseDTO,
+    summary="Search activities",
+    description="Search activities using advanced criteria and filters.",
+)
+async def search_activities(
+    request: ActivityFilterDTO,
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(20, ge=1, le=100, description="Items per page"),
+    service: ActivityApplicationService = Depends(get_activity_service),
+) -> ActivityListResponseDTO:
+    """Search activities with advanced filters."""
+    try:
+        activities = await service.list_activities(request, page, per_page)
+        return activities
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -347,7 +320,7 @@ async def bulk_delete_activities(
 
 # Activity-Persona Link endpoints
 @router.post(
-    "/{activity_id}/personas",
+    "/{activity_id}/personas/{persona_id}",
     response_model=ActivityPersonaLinkResponseDTO,
     status_code=status.HTTP_201_CREATED,
     summary="Link activity to persona",
@@ -355,14 +328,13 @@ async def bulk_delete_activities(
 )
 async def link_activity_to_persona(
     activity_id: uuid.UUID,
+    persona_id: uuid.UUID,
     request: ActivityPersonaLinkCreateRequestDTO,
     service: ActivityApplicationService = Depends(get_activity_service),
 ) -> ActivityPersonaLinkResponseDTO:
     """Link an activity to a persona."""
     try:
-        # Set activity_id from URL parameter
-        request.activity_id = activity_id
-        link = await service.create_activity_persona_link(request)
+        link = await service.link_activity_to_persona(str(persona_id), str(activity_id), request)
         return link
     except ActivityPersonaLinkAlreadyExistsError:
         raise HTTPException(
@@ -470,7 +442,7 @@ async def find_similar_activities(
 ) -> list[dict[str, Any]]:
     """Find similar activities."""
     try:
-        similar = await service.find_similar_activities(
+        similar = await service.get_similar_activities(
             activity_id, limit, min_similarity
         )
         return similar
