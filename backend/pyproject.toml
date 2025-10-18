@@ -117,6 +117,7 @@ addopts = [
     "--cov-fail-under=80"
 ]
 env_files = [".env.test"]
+asyncio_mode = "auto"
 markers = [
     "unit: Unit tests",
     "integration: Integration tests", 

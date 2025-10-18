@@ -545,6 +545,9 @@ class ActivityApplicationService:
 
     def _activity_to_dto(self, activity: Activity) -> ActivityResponseDTO:
         """Convert Activity entity to DTO."""
+        # Convert semantic version string (x.y.z) to integer (x)
+        version_int = int(activity.version.split('.')[0]) if activity.version else 1
+        
         return ActivityResponseDTO(
             id=str(activity.id),
             name=activity.name,
@@ -562,7 +565,7 @@ class ActivityApplicationService:
             test_data_requirements=activity.test_data_requirements,
             tags=activity.tags,
             is_active=activity.is_active,
-            version=activity.version,
+            version=version_int,
             created_at=activity.created_at,
             updated_at=activity.updated_at,
         )

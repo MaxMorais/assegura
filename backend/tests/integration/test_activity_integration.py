@@ -23,6 +23,9 @@ from src.infrastructure.database.repositories.activity_repository import (
     SQLAlchemyActivityPersonaLinkRepository,
     SQLAlchemyActivityRepository,
 )
+from src.infrastructure.database.repositories.persona_repository import (
+    SQLAlchemyPersonaRepository,
+)
 
 
 class TestActivityIntegration:
@@ -63,13 +66,19 @@ class TestActivityIntegration:
         return SQLAlchemyActivityPersonaLinkRepository(db_session)
 
     @pytest.fixture
+    def persona_repository(self, db_session: Session) -> SQLAlchemyPersonaRepository:
+        """Persona repository fixture."""
+        return SQLAlchemyPersonaRepository(db_session)
+
+    @pytest.fixture
     def activity_service(
         self,
         activity_repository: SQLAlchemyActivityRepository,
+        persona_repository: SQLAlchemyPersonaRepository,
         link_repository: SQLAlchemyActivityPersonaLinkRepository,
     ) -> ActivityApplicationService:
         """Activity application service fixture."""
-        return ActivityApplicationService(activity_repository, link_repository)
+        return ActivityApplicationService(activity_repository, persona_repository, link_repository)
 
     async def test_create_activity_flow(
         self,

@@ -4,6 +4,7 @@ This module defines the database models for ERPNext business activities
 and their relationships with personas.
 """
 
+import os
 import uuid
 
 from sqlalchemy import (
@@ -18,11 +19,19 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import Uuid
 
 from .base import Base
+
+# Conditional imports for database compatibility
+# Use String(36) for both testing and production to ensure compatibility
+from sqlalchemy import JSON as JSONType
+
+def uuid_default():
+    import uuid
+    return uuid.uuid4()
 
 
 class ActivityModel(Base):
@@ -35,7 +44,7 @@ class ActivityModel(Base):
     __tablename__ = "activities"
 
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid, primary_key=True, default=uuid_default)
 
     # Basic information
     name = Column(String(255), nullable=False, unique=True, index=True)
@@ -47,8 +56,8 @@ class ActivityModel(Base):
     target_doctype = Column(String(100), nullable=False, index=True)
 
     # Activity configuration
-    required_fields = Column(Text)  # Comma-separated list
-    validation_rules = Column(JSONB, default={})
+    required_fields = Column(JSONType)  # JSON array
+    validation_rules = Column(JSONType, default={})
     success_criteria = Column(Text)  # Comma-separated list
 
     # Execution metadata
@@ -58,7 +67,7 @@ class ActivityModel(Base):
     postconditions = Column(Text)  # Comma-separated list
 
     # Test configuration
-    test_data_requirements = Column(JSONB, default={})
+    test_data_requirements = Column(JSONType, default={})
 
     # Organization
     tags = Column(Text)  # Comma-separated list
@@ -140,17 +149,17 @@ class ActivityPersonaLinkModel(Base):
     __tablename__ = "activity_persona_links"
 
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid, primary_key=True, default=uuid_default)
 
     # Foreign keys
     persona_id = Column(
-        UUID(as_uuid=True),
+        Uuid,
         ForeignKey("personas.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     activity_id = Column(
-        UUID(as_uuid=True),
+        Uuid,
         ForeignKey("activities.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

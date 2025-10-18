@@ -6,6 +6,7 @@ Provides comprehensive data persistence for journeys, steps, and execution plans
 with proper relationships, constraints, and JSON field support.
 """
 
+import os
 from datetime import datetime
 from uuid import uuid4
 
@@ -22,8 +23,18 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+
+# Conditional imports for database compatibility
+# Use String(36) for both testing and production to ensure compatibility
+from sqlalchemy import JSON as JSONType
+from sqlalchemy import String as UUIDType
+
+def uuid_column():
+    return UUIDType(36)  # UUIDs are 36 characters
+
+def uuid_default():
+    return str(uuid4())
+
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel, TimestampMixin
@@ -40,7 +51,7 @@ class JourneyModel(BaseModel, TimestampMixin):
     __tablename__ = "journeys"
 
     # Primary key
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default, index=True)
 
     # Basic journey information
     name = Column(String(255), nullable=False, index=True)
@@ -48,13 +59,13 @@ class JourneyModel(BaseModel, TimestampMixin):
 
     # Associations
     persona_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("personas.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     activity_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("activities.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -71,9 +82,9 @@ class JourneyModel(BaseModel, TimestampMixin):
     complexity_level = Column(String(50), nullable=False, default="medium", index=True)
 
     # Journey content (JSON fields for flexibility)
-    prerequisites = Column(JSONB, nullable=True, default=list)
-    expected_outcomes = Column(JSONB, nullable=True, default=list)
-    metadata = Column(JSONB, nullable=True, default=dict)
+    prerequisites = Column(JSONType, nullable=True, default=list)
+    expected_outcomes = Column(JSONType, nullable=True, default=list)
+    metadata = Column(JSONType, nullable=True, default=dict)
 
     # Usage tracking
     usage_count = Column(Integer, nullable=False, default=0)
@@ -153,17 +164,17 @@ class JourneyStepModel(BaseModel, TimestampMixin):
     __tablename__ = "journey_steps"
 
     # Primary key
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default, index=True)
 
     # Foreign keys
     journey_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("journeys.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     action_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("action_library.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
@@ -174,8 +185,8 @@ class JourneyStepModel(BaseModel, TimestampMixin):
     step_description = Column(Text, nullable=True)
 
     # Step execution configuration (JSON for flexibility)
-    parameters = Column(JSONB, nullable=True, default=dict)
-    expected_outputs = Column(JSONB, nullable=True, default=list)
+    parameters = Column(JSONType, nullable=True, default=dict)
+    expected_outputs = Column(JSONType, nullable=True, default=list)
 
     # Execution overrides
     timeout_override = Column(Integer, nullable=True)
@@ -183,14 +194,14 @@ class JourneyStepModel(BaseModel, TimestampMixin):
 
     # Step dependencies and parallelization
     depends_on_steps = Column(
-        JSONB, nullable=True, default=list
+        JSONType, nullable=True, default=list
     )  # Array of step numbers
     can_run_parallel = Column(Boolean, nullable=False, default=False)
     is_critical = Column(Boolean, nullable=False, default=True)
 
     # Step execution status
     execution_status = Column(String(50), nullable=False, default="pending", index=True)
-    execution_result = Column(JSONB, nullable=True, default=dict)
+    execution_result = Column(JSONType, nullable=True, default=dict)
     execution_duration_seconds = Column(Float, nullable=True)
     execution_error_message = Column(Text, nullable=True)
 
@@ -257,11 +268,11 @@ class JourneyExecutionPlanModel(BaseModel, TimestampMixin):
     __tablename__ = "journey_execution_plans"
 
     # Primary key
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default, index=True)
 
     # Foreign key
     journey_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("journeys.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -275,12 +286,12 @@ class JourneyExecutionPlanModel(BaseModel, TimestampMixin):
 
     # Parallelization analysis
     can_execute_parallel = Column(Boolean, nullable=False, default=False)
-    parallel_executable_steps = Column(JSONB, nullable=True, default=list)
-    critical_path_steps = Column(JSONB, nullable=True, default=list)
+    parallel_executable_steps = Column(JSONType, nullable=True, default=list)
+    critical_path_steps = Column(JSONType, nullable=True, default=list)
 
     # Execution strategy
-    rollback_points = Column(JSONB, nullable=True, default=list)
-    resource_requirements = Column(JSONB, nullable=True, default=dict)
+    rollback_points = Column(JSONType, nullable=True, default=list)
+    resource_requirements = Column(JSONType, nullable=True, default=dict)
 
     # Plan metadata
     plan_version = Column(Integer, nullable=False, default=1)
@@ -350,11 +361,11 @@ class JourneyExecutionModel(BaseModel, TimestampMixin):
     __tablename__ = "journey_executions"
 
     # Primary key
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default, index=True)
 
     # Foreign key
     journey_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("journeys.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -363,7 +374,7 @@ class JourneyExecutionModel(BaseModel, TimestampMixin):
     # Execution identification
     execution_number = Column(Integer, nullable=False, index=True)
     execution_batch_id = Column(
-        PG_UUID(as_uuid=True), nullable=True, index=True
+        uuid_column(), nullable=True, index=True
     )  # For batch executions
 
     # Execution timing
@@ -385,16 +396,16 @@ class JourneyExecutionModel(BaseModel, TimestampMixin):
 
     # Execution context and results
     execution_context = Column(
-        JSONB, nullable=True, default=dict
+        JSONType, nullable=True, default=dict
     )  # Environment, user, etc.
-    execution_results = Column(JSONB, nullable=True, default=dict)  # Detailed results
+    execution_results = Column(JSONType, nullable=True, default=dict)  # Detailed results
     error_summary = Column(Text, nullable=True)
 
     # Performance metrics
-    performance_metrics = Column(JSONB, nullable=True, default=dict)
+    performance_metrics = Column(JSONType, nullable=True, default=dict)
 
     # Execution environment
-    executed_by_user_id = Column(PG_UUID(as_uuid=True), nullable=True, index=True)
+    executed_by_user_id = Column(uuid_column(), nullable=True, index=True)
     execution_environment = Column(
         String(100), nullable=True, index=True
     )  # dev, staging, prod
@@ -481,17 +492,17 @@ class JourneyStepExecutionModel(BaseModel, TimestampMixin):
     __tablename__ = "journey_step_executions"
 
     # Primary key
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default, index=True)
 
     # Foreign keys
     journey_execution_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("journey_executions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     journey_step_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("journey_steps.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -515,19 +526,19 @@ class JourneyStepExecutionModel(BaseModel, TimestampMixin):
     )  # passed, failed, skipped, error
 
     # Step execution data
-    input_parameters = Column(JSONB, nullable=True, default=dict)
-    actual_outputs = Column(JSONB, nullable=True, default=dict)
+    input_parameters = Column(JSONType, nullable=True, default=dict)
+    actual_outputs = Column(JSONType, nullable=True, default=dict)
     step_artifacts = Column(
-        JSONB, nullable=True, default=dict
+        JSONType, nullable=True, default=dict
     )  # Screenshots, logs, etc.
 
     # Error handling
     error_message = Column(Text, nullable=True)
-    error_details = Column(JSONB, nullable=True, default=dict)
+    error_details = Column(JSONType, nullable=True, default=dict)
     retry_count = Column(Integer, nullable=False, default=0)
 
     # Performance data
-    performance_data = Column(JSONB, nullable=True, default=dict)
+    performance_data = Column(JSONType, nullable=True, default=dict)
 
     # Relationships
     journey_execution = relationship(

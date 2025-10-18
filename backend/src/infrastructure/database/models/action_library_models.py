@@ -6,6 +6,7 @@ Provides comprehensive data persistence for actions, classifications, execution 
 versioning, and relationships with proper BDD support and search optimization.
 """
 
+import os
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -21,8 +22,18 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+
+# Conditional imports for database compatibility
+# Use String(36) for both testing and production to ensure compatibility
+from sqlalchemy import JSON as JSONType
+from sqlalchemy import String as UUIDType
+
+def uuid_column():
+    return UUIDType(36)  # UUIDs are 36 characters
+
+def uuid_default():
+    return str(uuid4())
+
 from sqlalchemy.orm import relationship
 
 from .base import (
@@ -43,7 +54,7 @@ class ActionLibraryModel(BaseModel, TimestampMixin, AuditMixin):
     __tablename__ = "action_library"
 
     # Primary key
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default, index=True)
 
     # Basic action information
     name = Column(String(255), nullable=False, unique=True, index=True)
@@ -63,11 +74,11 @@ class ActionLibraryModel(BaseModel, TimestampMixin, AuditMixin):
     )  # navigation, form_filling, data_entry, reporting, etc.
 
     # Action implementation (JSON for flexibility)
-    implementation = Column(JSONB, nullable=False, default=dict)
+    implementation = Column(JSONType, nullable=False, default=dict)
 
     # Parameter and output schemas (JSON Schema format)
-    parameters_schema = Column(JSONB, nullable=True, default=dict)
-    expected_outputs_schema = Column(JSONB, nullable=True, default=dict)
+    parameters_schema = Column(JSONType, nullable=True, default=dict)
+    expected_outputs_schema = Column(JSONType, nullable=True, default=dict)
 
     # Execution configuration
     default_timeout_seconds = Column(Integer, nullable=False, default=30)
@@ -77,16 +88,16 @@ class ActionLibraryModel(BaseModel, TimestampMixin, AuditMixin):
     is_active = Column(Boolean, nullable=False, default=True, index=True)
 
     # Action prerequisites and postconditions
-    prerequisites = Column(JSONB, nullable=True, default=list)
-    postconditions = Column(JSONB, nullable=True, default=list)
+    prerequisites = Column(JSONType, nullable=True, default=list)
+    postconditions = Column(JSONType, nullable=True, default=list)
 
     # Tagging and metadata
-    tags = Column(JSONB, nullable=True, default=list)  # Array of string tags
-    metadata = Column(JSONB, nullable=True, default=dict)
+    tags = Column(JSONType, nullable=True, default=list)  # Array of string tags
+    metadata = Column(JSONType, nullable=True, default=dict)
 
     # ERPNext specific fields
     erpnext_doctype = Column(String(255), nullable=True, index=True)
-    ui_selectors = Column(JSONB, nullable=True, default=dict)
+    ui_selectors = Column(JSONType, nullable=True, default=dict)
 
     # Usage tracking
     usage_count = Column(Integer, nullable=False, default=0, index=True)
@@ -209,11 +220,11 @@ class ActionExecutionMetricsModel(BaseModel, TimestampMixin):
     __tablename__ = "action_execution_metrics"
 
     # Primary key
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default, index=True)
 
     # Foreign key
     action_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("action_library.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -236,12 +247,12 @@ class ActionExecutionMetricsModel(BaseModel, TimestampMixin):
     last_failure_date = Column(DateTime(timezone=True), nullable=True, index=True)
 
     # Failure analysis
-    common_failure_reasons = Column(JSONB, nullable=True, default=list)
-    failure_patterns = Column(JSONB, nullable=True, default=dict)
+    common_failure_reasons = Column(JSONType, nullable=True, default=list)
+    failure_patterns = Column(JSONType, nullable=True, default=dict)
 
     # Performance analysis
-    performance_trends = Column(JSONB, nullable=True, default=dict)
-    resource_usage_stats = Column(JSONB, nullable=True, default=dict)
+    performance_trends = Column(JSONType, nullable=True, default=dict)
+    resource_usage_stats = Column(JSONType, nullable=True, default=dict)
 
     # Reliability metrics
     reliability_score = Column(Float, nullable=True)  # 0-100 calculated score
@@ -337,11 +348,11 @@ class ActionVersionModel(BaseModel, TimestampMixin):
     __tablename__ = "action_versions"
 
     # Primary key
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default, index=True)
 
     # Foreign key
     action_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("action_library.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -357,7 +368,7 @@ class ActionVersionModel(BaseModel, TimestampMixin):
 
     # Version metadata
     change_summary = Column(Text, nullable=True)
-    change_details = Column(JSONB, nullable=True, default=dict)
+    change_details = Column(JSONType, nullable=True, default=dict)
 
     # Version status
     is_current = Column(Boolean, nullable=False, default=False, index=True)
@@ -365,7 +376,7 @@ class ActionVersionModel(BaseModel, TimestampMixin):
 
     # Compatibility information
     backward_compatible = Column(Boolean, nullable=True)
-    breaking_changes = Column(JSONB, nullable=True, default=list)
+    breaking_changes = Column(JSONType, nullable=True, default=list)
 
     # Relationships
     action = relationship("ActionLibraryModel", back_populates="versions")
@@ -409,17 +420,17 @@ class ActionRelationshipModel(BaseModel, TimestampMixin):
     __tablename__ = "action_relationships"
 
     # Primary key
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default, index=True)
 
     # Relationship endpoints
     source_action_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("action_library.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     target_action_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("action_library.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -437,16 +448,16 @@ class ActionRelationshipModel(BaseModel, TimestampMixin):
     # Relationship metadata
     description = Column(Text, nullable=True)
     conditions = Column(
-        JSONB, nullable=True, default=dict
+        JSONType, nullable=True, default=dict
     )  # When this relationship applies
-    metadata = Column(JSONB, nullable=True, default=dict)
+    metadata = Column(JSONType, nullable=True, default=dict)
 
     # Relationship status
     is_active = Column(Boolean, nullable=False, default=True, index=True)
 
     # Relationship context
     context_tags = Column(
-        JSONB, nullable=True, default=list
+        JSONType, nullable=True, default=list
     )  # Contexts where relationship applies
 
     # Relationships
@@ -511,17 +522,17 @@ class ActionUsageTrackingModel(BaseModel, TimestampMixin):
     __tablename__ = "action_usage_tracking"
 
     # Primary key
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(uuid_column(), primary_key=True, default=uuid_default, index=True)
 
     # Foreign keys
     action_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("action_library.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     journey_id = Column(
-        PG_UUID(as_uuid=True),
+        uuid_column(),
         ForeignKey("journeys.id", ondelete="CASCADE"),
         nullable=True,  # Nullable for standalone usage
         index=True,
@@ -539,7 +550,7 @@ class ActionUsageTrackingModel(BaseModel, TimestampMixin):
     used_at = Column(DateTime(timezone=True), nullable=False, index=True)
 
     # Usage details
-    parameters_used = Column(JSONB, nullable=True, default=dict)
+    parameters_used = Column(JSONType, nullable=True, default=dict)
     execution_result = Column(
         String(50), nullable=True, index=True
     )  # success, failure, error
@@ -548,7 +559,7 @@ class ActionUsageTrackingModel(BaseModel, TimestampMixin):
     # Usage metadata
     user_agent = Column(String(255), nullable=True)
     session_id = Column(String(255), nullable=True, index=True)
-    metadata = Column(JSONB, nullable=True, default=dict)
+    metadata = Column(JSONType, nullable=True, default=dict)
 
     # Relationships
     action = relationship("ActionLibraryModel")
