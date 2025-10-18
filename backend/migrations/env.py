@@ -18,6 +18,20 @@ except ImportError as e:
     print(f"Alembic dependencies not installed: {e}")
     print("Run 'pip install alembic' in backend directory")
 
+# Load environment variables from .env.test if TESTING=true
+if os.getenv("TESTING", "false").lower() == "true":
+    try:
+        from dotenv import load_dotenv
+
+        backend_root = Path(__file__).parent.parent
+        env_test_path = backend_root / ".env.test"
+        if env_test_path.exists():
+            load_dotenv(env_test_path)
+            print(f"Loaded environment variables from {env_test_path}")
+    except ImportError:
+        print("python-dotenv not installed, environment variables may not be loaded")
+        load_dotenv()
+
 # Add the backend src directory to Python path for imports
 backend_root = Path(__file__).parent.parent
 src_path = backend_root / "src"
