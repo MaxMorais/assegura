@@ -34,7 +34,8 @@ from ...application.dto.journey_schemas import (
 )
 from ...application.services.action_service import ActionLibraryService
 from ...application.services.journey_service import JourneyService
-from ...infrastructure.database.config import get_db
+from ...domain.journeys.journey_action_service import JourneyActionService
+from ...infrastructure.database import get_sync_db
 from ...infrastructure.database.repositories.action_repository import (
     SQLAlchemyActionRepository,
 )
@@ -47,10 +48,10 @@ from ...infrastructure.database.repositories.persona_repository import (
 )
 
 # Create router for journey endpoints
-router = APIRouter()
+router = APIRouter(prefix="/journeys", tags=["journeys"])
 
 
-def get_services(db: Session = Depends(get_db)):
+def get_services(db: Session = Depends(get_sync_db)):
     """Dependency to get required services."""
     journey_repo = JourneyRepository(db)
     action_repo = SQLAlchemyActionRepository(db)
@@ -60,13 +61,13 @@ def get_services(db: Session = Depends(get_db)):
     # Mock persona and activity services (would be proper implementations)
     class MockPersonaService:
         async def exists(self, persona_id: uuid.UUID) -> bool:
-            persona = await persona_repo.get_by_id(persona_id)
+            persona = await persona_repo.find_by_id(persona_id)
             return persona is not None
 
         async def get_persona_info(
             self, persona_id: uuid.UUID
         ) -> Optional[dict[str, Any]]:
-            persona = await persona_repo.get_by_id(persona_id)
+            persona = await persona_repo.find_by_id(persona_id)
             return {"id": str(persona.id), "name": persona.name} if persona else None
 
     class MockActivityService:
@@ -84,9 +85,11 @@ def get_services(db: Session = Depends(get_db)):
     activity_service = MockActivityService()
     action_service = ActionLibraryService(action_repo)
 
+    journey_action_service = JourneyActionService(action_repo)
+
     journey_service = JourneyService(
         journey_repo,
-        None,
+        journey_action_service,
         persona_service,
         activity_service,  # journey_action_service would be implemented
     )
@@ -95,7 +98,7 @@ def get_services(db: Session = Depends(get_db)):
 
 
 @router.post(
-    "/journeys",
+    "/",
     response_model=JourneyResponseSchema,
     status_code=status.HTTP_201_CREATED,
     summary="Create new journey",
@@ -119,7 +122,7 @@ async def create_journey(
 
 
 @router.get(
-    "/journeys/{journey_id}",
+    "/{journey_id}",
     response_model=JourneyResponseSchema,
     summary="Get journey by ID",
     description="Retrieve journey details including steps and execution plan",
@@ -149,7 +152,7 @@ async def get_journey(
 
 
 @router.get(
-    "/journeys",
+    "/",
     response_model=PaginatedResponse[JourneyListItemSchema],
     summary="List journeys",
     description="List journeys with filtering, sorting, and pagination",
@@ -201,7 +204,7 @@ async def list_journeys(
 
 
 @router.put(
-    "/journeys/{journey_id}",
+    "/{journey_id}",
     response_model=JourneyResponseSchema,
     summary="Update journey",
     description="Update journey details and properties",
@@ -231,7 +234,7 @@ async def update_journey(
 
 
 @router.patch(
-    "/journeys/{journey_id}/associations",
+    "/{journey_id}/associations",
     response_model=JourneyResponseSchema,
     summary="Update journey associations",
     description="Update persona and activity associations",
@@ -263,7 +266,7 @@ async def update_journey_associations(
 
 
 @router.delete(
-    "/journeys/{journey_id}",
+    "/{journey_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete journey",
     description="Delete journey and all associated steps",
@@ -295,15 +298,15 @@ async def delete_journey(
 
 
 @router.post(
-    "/journeys/{journey_id}/steps",
+    "/{journey_id}/steps",
     response_model=ActionStepSchema,
     status_code=status.HTTP_201_CREATED,
     summary="Add journey step",
     description="Add a new step to journey",
 )
 async def add_journey_step(
+    step_data: JourneyStepCreateSchema,
     journey_id: uuid.UUID = Path(..., description="Journey ID"),
-    step_data: JourneyStepCreateSchema = None,
     services=Depends(get_services),
 ) -> ActionStepSchema:
     """Add step to journey."""
@@ -323,7 +326,7 @@ async def add_journey_step(
 
 
 @router.put(
-    "/journeys/{journey_id}/steps/{step_number}",
+    "/{journey_id}/steps/{step_number}",
     response_model=ActionStepSchema,
     summary="Update journey step",
     description="Update existing journey step",
@@ -353,7 +356,7 @@ async def update_journey_step(
 
 
 @router.delete(
-    "/journeys/{journey_id}/steps/{step_number}",
+    "/{journey_id}/steps/{step_number}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Remove journey step",
     description="Remove step from journey",
@@ -386,7 +389,7 @@ async def remove_journey_step(
 
 
 @router.post(
-    "/journeys/{journey_id}/validate",
+    "/{journey_id}/validate",
     response_model=JourneyValidationSchema,
     summary="Validate journey",
     description="Perform comprehensive journey validation",
@@ -413,7 +416,7 @@ async def validate_journey(
 
 
 @router.post(
-    "/journeys/{journey_id}/execution-plan",
+    "/{journey_id}/execution-plan",
     response_model=JourneyExecutionPlanSchema,
     summary="Generate execution plan",
     description="Generate optimized execution plan for journey",
@@ -440,7 +443,7 @@ async def generate_execution_plan(
 
 
 @router.post(
-    "/journeys/{journey_id}/prepare-execution",
+    "/{journey_id}/prepare-execution",
     summary="Prepare for execution",
     description="Prepare journey for execution",
 )
@@ -477,7 +480,7 @@ async def prepare_journey_for_execution(
 
 
 @router.post(
-    "/journeys/bulk",
+    "/bulk",
     response_model=JourneyBulkResultSchema,
     summary="Bulk journey operations",
     description="Perform bulk operations on multiple journeys",
@@ -501,7 +504,7 @@ async def bulk_journey_operation(
 
 
 @router.get(
-    "/journeys/statistics",
+    "/statistics",
     response_model=JourneyStatsSchema,
     summary="Get journey statistics",
     description="Retrieve journey usage and performance statistics",
@@ -523,7 +526,7 @@ async def get_journey_statistics(services=Depends(get_services)) -> JourneyStats
 
 
 @router.post(
-    "/journey-templates",
+    "/templates",
     summary="Create journey template",
     description="Create reusable journey template",
 )
@@ -547,7 +550,7 @@ async def create_journey_template(
 
 
 @router.post(
-    "/journeys/from-template",
+    "/from-template",
     response_model=JourneyResponseSchema,
     status_code=status.HTTP_201_CREATED,
     summary="Create journey from template",

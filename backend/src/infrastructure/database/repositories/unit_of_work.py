@@ -74,6 +74,21 @@ class SqlUnitOfWork(UnitOfWork):
                 self.rollback()
                 raise
 
+    async def __aenter__(self) -> "SqlUnitOfWork":
+        """Async enter context manager."""
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Async exit context manager with proper transaction handling."""
+        if exc_type is not None:
+            self.rollback()
+        else:
+            try:
+                self.commit()
+            except Exception:
+                self.rollback()
+                raise
+
     def commit(self) -> None:
         """Commit the current transaction."""
         try:

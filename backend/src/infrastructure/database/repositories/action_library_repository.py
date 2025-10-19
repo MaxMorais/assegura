@@ -434,13 +434,13 @@ class ActionLibraryRepository(BaseRepository, ActionLibraryRepositoryInterface):
                     selectinload(ActionLibraryModel.execution_metrics),
                     selectinload(ActionLibraryModel.versions),
                 )
-                .filter(ActionLibraryModel.id == action.action_id)
+                .filter(ActionLibraryModel.id == action.id)
                 .first()
             )
 
             if not action_model:
                 raise ActionLibraryRepositoryError(
-                    f"Action {action.action_id} not found for update"
+                    f"Action {action.id} not found for update"
                 )
 
             # Check if significant changes require versioning
@@ -798,7 +798,7 @@ class ActionLibraryRepository(BaseRepository, ActionLibraryRepositoryInterface):
                 .filter(
                     and_(
                         ActionLibraryModel.id
-                        != action.action_id,  # Exclude self if updating
+                        != action.id,  # Exclude self if updating
                         or_(
                             ActionLibraryModel.name.ilike(name_pattern),
                             ActionLibraryModel.name.ilike(
@@ -947,7 +947,7 @@ class ActionLibraryRepository(BaseRepository, ActionLibraryRepositoryInterface):
         """Convert domain object to database model."""
 
         return ActionLibraryModel(
-            id=action.action_id,
+            id=action.id,
             name=action.name,
             description=action.description,
             action_type=action.action_type.value,
@@ -1090,7 +1090,7 @@ class ActionLibraryRepository(BaseRepository, ActionLibraryRepositoryInterface):
         )
 
         # Set additional properties
-        action.action_id = model.id
+        action.id = model.id
         action.is_active = model.is_active
         action.usage_count = model.usage_count
         action.last_used_date = model.last_used_date

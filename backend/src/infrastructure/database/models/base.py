@@ -13,6 +13,9 @@ from sqlalchemy import Column, DateTime, Integer, event
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 
+# For SQLite compatibility, use String for UUIDs in tests
+from sqlalchemy import String as UUIDType
+
 # Create the declarative base
 Base = declarative_base()
 
@@ -102,8 +105,8 @@ class AuditMixin:
     Tracks who created and last modified the record.
     """
 
-    created_by = Column(PG_UUID(as_uuid=True), nullable=True, index=True)
-    updated_by = Column(PG_UUID(as_uuid=True), nullable=True, index=True)
+    created_by = Column(UUIDType(36), nullable=True, index=True)
+    updated_by = Column(UUIDType(36), nullable=True, index=True)
 
     def set_created_by(self, user_id: UUID) -> None:
         """Set the user who created the record."""

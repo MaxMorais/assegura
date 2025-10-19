@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from src.application.dto.journey_schemas import JourneyFilterSchema, JourneySortSchema
 from src.application.services.journey_service import JourneyRepositoryInterface
-from src.domain.actions.enhanced_action_library import EnhancedActionLibrary
+from src.domain.actions.action_library import Action, ActionType, ImplementationType
 from src.domain.journeys.enhanced_journey import (
     ActionStepEnhanced,
     EnhancedJourney,
@@ -43,8 +43,37 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
     """SQLAlchemy implementation of journey repository."""
 
     def __init__(self, db_session: Session):
-        super().__init__(db_session)
-        self.model_class = JourneyModel
+        super().__init__(db_session, JourneyModel)
+
+    def _entity_to_model(self, entity: EnhancedJourney) -> JourneyModel:
+        """Convert EnhancedJourney entity to JourneyModel."""
+        return self._convert_domain_to_model(entity)
+
+    def _model_to_entity(self, model: JourneyModel) -> EnhancedJourney:
+        """Convert JourneyModel to EnhancedJourney entity."""
+        # For synchronous conversion, we'll create a basic journey without async loading
+        # This is a simplified version for the base repository methods
+        from src.domain.journeys.enhanced_journey import EnhancedJourney, JourneyExecutionStatus
+        
+        # Create basic journey without loading related data
+        journey = EnhancedJourney(
+            id=model.id,
+            name=model.name,
+            description=model.description,
+            persona_id=model.persona_id,
+            activity_id=model.activity_id,
+            execution_status=JourneyExecutionStatus(model.execution_status or "draft"),
+            is_active=model.is_active,
+            estimated_duration_minutes=model.estimated_duration_minutes,
+            complexity_level=model.complexity_level,
+            prerequisites=model.prerequisites or [],
+            expected_outcomes=model.expected_outcomes or [],
+            metadata=model.journey_metadata or {},
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
+        
+        return journey
 
     async def create(self, journey: EnhancedJourney) -> EnhancedJourney:
         """
@@ -64,41 +93,41 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             journey_model = self._convert_domain_to_model(journey)
 
             # Add to session and flush to get ID
-            self.db_session.add(journey_model)
-            self.db_session.flush()
+            self.session.add(journey_model)
+            self.session.flush()
 
             # Create journey steps
             if journey.enhanced_steps:
                 for step in journey.enhanced_steps:
                     step_model = self._convert_step_to_model(step, journey_model.id)
-                    self.db_session.add(step_model)
+                    self.session.add(step_model)
 
             # Create execution plan if present
             if journey.execution_plan:
                 plan_model = self._convert_execution_plan_to_model(
                     journey.execution_plan, journey_model.id
                 )
-                self.db_session.add(plan_model)
+                self.session.add(plan_model)
 
             # Commit transaction
-            self.db_session.commit()
+            self.session.commit()
 
             # Refresh and return converted domain object
-            self.db_session.refresh(journey_model)
+            self.session.refresh(journey_model)
             return await self._convert_model_to_domain(journey_model)
 
         except IntegrityError as e:
-            self.db_session.rollback()
+            self.session.rollback()
             raise JourneyRepositoryError(
                 f"Journey creation failed due to constraint violation: {str(e)}"
             )
         except SQLAlchemyError as e:
-            self.db_session.rollback()
+            self.session.rollback()
             raise JourneyRepositoryError(
                 f"Database error during journey creation: {str(e)}"
             )
         except Exception as e:
-            self.db_session.rollback()
+            self.session.rollback()
             raise JourneyRepositoryError(
                 f"Unexpected error during journey creation: {str(e)}"
             )
@@ -115,7 +144,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         """
         try:
             journey_model = (
-                self.db_session.query(JourneyModel)
+                self.session.query(JourneyModel)
                 .options(
                     selectinload(JourneyModel.steps).selectinload(
                         JourneyStepModel.action
@@ -157,7 +186,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         """
         try:
             journey_models = (
-                self.db_session.query(JourneyModel)
+                self.session.query(JourneyModel)
                 .options(
                     selectinload(JourneyModel.steps).selectinload(
                         JourneyStepModel.action
@@ -210,7 +239,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         """
         try:
             # Base query with optimized loading
-            query = self.db_session.query(JourneyModel).options(
+            query = self.session.query(JourneyModel).options(
                 selectinload(JourneyModel.steps).selectinload(JourneyStepModel.action),
                 selectinload(JourneyModel.execution_plan),
                 joinedload(JourneyModel.persona),
@@ -266,7 +295,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         try:
             # Get existing journey model
             journey_model = (
-                self.db_session.query(JourneyModel)
+                self.session.query(JourneyModel)
                 .options(
                     selectinload(JourneyModel.steps),
                     selectinload(JourneyModel.execution_plan),
@@ -291,20 +320,20 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                 await self._update_execution_plan(journey_model, journey.execution_plan)
 
             # Commit changes
-            self.db_session.commit()
+            self.session.commit()
 
             # Refresh and return
-            self.db_session.refresh(journey_model)
+            self.session.refresh(journey_model)
             return await self._convert_model_to_domain(journey_model)
 
         except JourneyRepositoryError:
-            self.db_session.rollback()
+            self.session.rollback()
             raise
         except SQLAlchemyError as e:
-            self.db_session.rollback()
+            self.session.rollback()
             raise JourneyRepositoryError(f"Database error updating journey: {str(e)}")
         except Exception as e:
-            self.db_session.rollback()
+            self.session.rollback()
             raise JourneyRepositoryError(f"Unexpected error updating journey: {str(e)}")
 
     async def delete(self, journey_id: UUID) -> bool:
@@ -323,7 +352,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         try:
             # Get journey with related data
             journey_model = (
-                self.db_session.query(JourneyModel)
+                self.session.query(JourneyModel)
                 .options(
                     selectinload(JourneyModel.steps),
                     selectinload(JourneyModel.execution_plan),
@@ -336,16 +365,16 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                 return False
 
             # Delete related data (steps and execution plan will be deleted by cascade)
-            self.db_session.delete(journey_model)
-            self.db_session.commit()
+            self.session.delete(journey_model)
+            self.session.commit()
 
             return True
 
         except SQLAlchemyError as e:
-            self.db_session.rollback()
+            self.session.rollback()
             raise JourneyRepositoryError(f"Database error deleting journey: {str(e)}")
         except Exception as e:
-            self.db_session.rollback()
+            self.session.rollback()
             raise JourneyRepositoryError(f"Unexpected error deleting journey: {str(e)}")
 
     async def get_journey_stats(self) -> dict[str, Any]:
@@ -357,16 +386,16 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         """
         try:
             # Basic counts
-            total_journeys = self.db_session.query(func.count(JourneyModel.id)).scalar()
+            total_journeys = self.session.query(func.count(JourneyModel.id)).scalar()
             active_journeys = (
-                self.db_session.query(func.count(JourneyModel.id))
+                self.session.query(func.count(JourneyModel.id))
                 .filter(JourneyModel.is_active == True)
                 .scalar()
             )
 
             # Status distribution
             status_stats = (
-                self.db_session.query(
+                self.session.query(
                     JourneyModel.execution_status,
                     func.count(JourneyModel.id).label("count"),
                 )
@@ -376,7 +405,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
 
             # Complexity distribution
             complexity_stats = (
-                self.db_session.query(
+                self.session.query(
                     JourneyModel.complexity_level,
                     func.count(JourneyModel.id).label("count"),
                     func.avg(JourneyModel.estimated_duration_minutes).label(
@@ -389,7 +418,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
 
             # Step count statistics
             step_stats = (
-                self.db_session.query(
+                self.session.query(
                     func.count(JourneyStepModel.id).label("total_steps"),
                     func.avg(func.count(JourneyStepModel.id))
                     .over()
@@ -401,15 +430,15 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             )
 
             total_steps = (
-                self.db_session.query(func.sum(step_stats.c.total_steps)).scalar() or 0
+                self.session.query(func.sum(step_stats.c.total_steps)).scalar() or 0
             )
             avg_steps = (
-                self.db_session.query(func.avg(step_stats.c.total_steps)).scalar() or 0
+                self.session.query(func.avg(step_stats.c.total_steps)).scalar() or 0
             )
 
             # Recent activity
             recent_journeys = (
-                self.db_session.query(func.count(JourneyModel.id))
+                self.session.query(func.count(JourneyModel.id))
                 .filter(
                     JourneyModel.created_at >= func.now() - text("INTERVAL '7 days'")
                 )
@@ -470,7 +499,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             for journey_id in journey_ids:
                 try:
                     updated_count = (
-                        self.db_session.query(JourneyModel)
+                        self.session.query(JourneyModel)
                         .filter(JourneyModel.id == journey_id)
                         .update(
                             {
@@ -484,16 +513,16 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                 except Exception:
                     results[journey_id] = False
 
-            self.db_session.commit()
+            self.session.commit()
             return results
 
         except SQLAlchemyError as e:
-            self.db_session.rollback()
+            self.session.rollback()
             raise JourneyRepositoryError(
                 f"Database error in bulk status update: {str(e)}"
             )
         except Exception as e:
-            self.db_session.rollback()
+            self.session.rollback()
             raise JourneyRepositoryError(
                 f"Unexpected error in bulk status update: {str(e)}"
             )
@@ -598,18 +627,18 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         """Convert domain object to database model."""
 
         return JourneyModel(
-            id=journey.id,
+            id=str(journey.id),
             name=journey.name,
             description=journey.description,
-            persona_id=journey.persona_id,
-            activity_id=journey.activity_id,
+            persona_id=str(journey.persona_id),
+            activity_id=str(journey.activity_id),
             execution_status=journey.execution_status.value,
             is_active=journey.is_active,
             estimated_duration_minutes=journey.estimated_duration_minutes,
             complexity_level=journey.complexity_level,
             prerequisites=journey.prerequisites,
             expected_outcomes=journey.expected_outcomes,
-            metadata=journey.metadata or {},
+            journey_metadata=journey.metadata or {},
             created_at=journey.created_at,
             updated_at=journey.updated_at,
         )
@@ -620,9 +649,9 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         """Convert domain step to database model."""
 
         return JourneyStepModel(
-            journey_id=journey_id,
+            journey_id=str(journey_id),
             step_number=step.step_number,
-            action_id=step.action.action_id,
+            action_id=str(step.action.action_id),
             step_description=step.step_description,
             parameters=step.parameters or {},
             expected_outputs=step.expected_outputs or [],
@@ -639,7 +668,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         """Convert execution plan to database model."""
 
         return JourneyExecutionPlanModel(
-            journey_id=journey_id,
+            journey_id=str(journey_id),
             total_steps=plan.total_steps,
             estimated_duration_seconds=int(plan.estimated_duration.total_seconds()),
             complexity_score=plan.complexity_score,
@@ -657,15 +686,15 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
 
         model.name = journey.name
         model.description = journey.description
-        model.persona_id = journey.persona_id
-        model.activity_id = journey.activity_id
+        model.persona_id = str(journey.persona_id)
+        model.activity_id = str(journey.activity_id)
         model.execution_status = journey.execution_status.value
         model.is_active = journey.is_active
         model.estimated_duration_minutes = journey.estimated_duration_minutes
         model.complexity_level = journey.complexity_level
         model.prerequisites = journey.prerequisites
         model.expected_outcomes = journey.expected_outcomes
-        model.metadata = journey.metadata or {}
+        model.journey_metadata = journey.metadata or {}
         model.updated_at = journey.updated_at or datetime.utcnow()
 
     async def _update_journey_steps(
@@ -674,14 +703,14 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         """Update journey steps, handling additions, updates, and deletions."""
 
         # Delete existing steps
-        self.db_session.query(JourneyStepModel).filter(
+        self.session.query(JourneyStepModel).filter(
             JourneyStepModel.journey_id == journey_model.id
         ).delete()
 
         # Add new steps
         for step in steps:
             step_model = self._convert_step_to_model(step, journey_model.id)
-            self.db_session.add(step_model)
+            self.session.add(step_model)
 
     async def _update_execution_plan(
         self, journey_model: JourneyModel, plan: JourneyExecutionPlan
@@ -689,13 +718,13 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         """Update execution plan."""
 
         # Delete existing plan
-        self.db_session.query(JourneyExecutionPlanModel).filter(
+        self.session.query(JourneyExecutionPlanModel).filter(
             JourneyExecutionPlanModel.journey_id == journey_model.id
         ).delete()
 
         # Add new plan
         plan_model = self._convert_execution_plan_to_model(plan, journey_model.id)
-        self.db_session.add(plan_model)
+        self.session.add(plan_model)
 
     async def _convert_model_to_domain(self, model: JourneyModel) -> EnhancedJourney:
         """Convert database model to domain object."""
@@ -710,7 +739,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             complexity_level=model.complexity_level,
             prerequisites=model.prerequisites,
             expected_outcomes=model.expected_outcomes,
-            metadata=model.metadata,
+            metadata=model.journey_metadata,
         )
 
         # Set additional properties
@@ -779,22 +808,25 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
 
     async def _convert_action_model_to_domain(
         self, action_model: ActionLibraryModel
-    ) -> EnhancedActionLibrary:
+    ) -> Action:
         """Convert action model to domain object."""
 
         # This would be implemented based on the ActionLibraryModel structure
         # For now, return a minimal action object
-        from src.domain.actions.enhanced_action_library import (
-            ActionCategory,
-            ActionType,
-            BDDStepType,
-        )
-
-        return EnhancedActionLibrary.create_enhanced(
+        return Action.create(
             name=action_model.name,
             description=action_model.description,
             action_type=ActionType(action_model.action_type),
-            bdd_step_type=BDDStepType(action_model.bdd_step_type),
-            category=ActionCategory(action_model.category),
-            implementation=action_model.implementation or {},
+            erpnext_module=action_model.erpnext_module or "Unknown",
+            implementation_type=ImplementationType(action_model.implementation_type or "ui_interaction"),
+            parameters=[],  # Would need to be converted from model
+            expected_outputs=[],  # Would need to be converted from model
+            robot_keywords=action_model.robot_keywords or [],
+            validation_rules=action_model.validation_rules or {},
+            tags=action_model.tags or [],
+            prerequisites=action_model.prerequisites or [],
+            postconditions=action_model.postconditions or [],
+            execution_timeout=action_model.execution_timeout or 30,
+            retry_count=action_model.retry_count or 0,
+            metadata=action_model.action_metadata or {},
         )

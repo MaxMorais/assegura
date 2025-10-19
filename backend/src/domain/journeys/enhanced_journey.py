@@ -126,6 +126,21 @@ class EnhancedJourney(BaseJourney):
         """Get current execution status."""
         return self._execution_status
 
+    @execution_status.setter
+    def execution_status(self, status: JourneyExecutionStatus) -> None:
+        """Set execution status."""
+        self._execution_status = status
+
+    @property
+    def is_active(self) -> bool:
+        """Get active status."""
+        return self._is_active
+
+    @is_active.setter
+    def is_active(self, active: bool) -> None:
+        """Set active status."""
+        self._is_active = active
+
     @property
     def execution_plan(self) -> Optional[JourneyExecutionPlan]:
         """Get execution plan."""

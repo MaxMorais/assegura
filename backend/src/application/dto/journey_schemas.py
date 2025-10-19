@@ -13,7 +13,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, validator
 
-from src.application.dto.base_schemas import BaseResponseSchema, PaginatedResponse
+from src.application.dto.base_schemas import EntityDTO, PaginatedResponse
 
 
 class JourneyStatusEnum(str, Enum):
@@ -277,7 +277,7 @@ class ActionsSummarySchema(BaseModel):
     )
 
 
-class JourneyResponseSchema(JourneyBaseSchema, BaseResponseSchema):
+class JourneyResponseSchema(JourneyBaseSchema, EntityDTO):
     """Schema for journey API responses."""
 
     persona_id: UUID = Field(..., description="Associated persona ID")
@@ -418,10 +418,10 @@ class JourneySortSchema(BaseModel):
     sort_by: str = Field(
         default="created_at",
         description="Field to sort by",
-        regex="^(name|created_at|updated_at|step_count|complexity_level|estimated_duration_minutes)$",
+        pattern="^(name|created_at|updated_at|step_count|complexity_level|estimated_duration_minutes)$",
     )
     sort_order: str = Field(
-        default="desc", description="Sort order", regex="^(asc|desc)$"
+        default="desc", description="Sort order", pattern="^(asc|desc)$"
     )
 
 
@@ -466,7 +466,7 @@ class JourneyBulkOperationSchema(BaseModel):
         ..., min_items=1, max_items=100, description="Journey IDs"
     )
     operation: str = Field(
-        ..., regex="^(activate|deactivate|delete|execute)$", description="Operation"
+        ..., pattern="^(activate|deactivate|delete|execute)$", description="Operation"
     )
     parameters: Optional[dict[str, Any]] = Field(
         None, description="Operation parameters"

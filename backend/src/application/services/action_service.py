@@ -32,32 +32,31 @@ from src.application.dto.action_schemas import (
 )
 from src.application.dto.base_schemas import PaginatedResponse
 from src.domain.actions.action_library import (
-    ActionLibrary,
+    Action,
     ActionOutput,
     ActionParameter,
     ActionType,
     ImplementationType,
 )
-from src.domain.actions.parameter_structures import ParameterValidator
 
 
 class ActionRepositoryInterface(ABC):
     """Abstract interface for action data persistence."""
 
     @abstractmethod
-    async def create(self, action: ActionLibrary) -> ActionLibrary:
+    async def create(self, action: Action) -> Action:
         """Create a new action."""
         pass
 
     @abstractmethod
-    async def get_by_id(self, action_id: UUID) -> Optional[ActionLibrary]:
+    async def get_by_id(self, action_id: UUID) -> Optional[Action]:
         """Get action by ID."""
         pass
 
     @abstractmethod
     async def get_by_name_and_type(
         self, name: str, action_type: ActionType
-    ) -> Optional[ActionLibrary]:
+    ) -> Optional[Action]:
         """Get action by name and type."""
         pass
 
@@ -68,12 +67,12 @@ class ActionRepositoryInterface(ABC):
         sort: Optional[ActionSortSchema] = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> tuple[list[ActionLibrary], int]:
+    ) -> tuple[list[Action], int]:
         """List actions with filtering and pagination."""
         pass
 
     @abstractmethod
-    async def update(self, action: ActionLibrary) -> ActionLibrary:
+    async def update(self, action: Action) -> Action:
         """Update existing action."""
         pass
 
@@ -83,7 +82,7 @@ class ActionRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    async def get_actions_by_module(self, erpnext_module: str) -> list[ActionLibrary]:
+    async def get_actions_by_module(self, erpnext_module: str) -> list[Action]:
         """Get actions for specific ERPNext module."""
         pass
 
@@ -121,7 +120,7 @@ class ActionLibraryService:
 
     def __init__(self, action_repository: ActionRepositoryInterface):
         self.action_repository = action_repository
-        self.parameter_validator = ParameterValidator()
+        # Remove parameter_validator as ActionParameter has its own validate_value method
         self._action_templates: dict[str, ActionTemplateSchema] = {}
 
     async def create_action(
@@ -151,7 +150,7 @@ class ActionLibraryService:
                 )
 
             # Create action library entity
-            action = ActionLibrary.create_action(
+            action = Action.create(
                 name=action_data.name,
                 description=action_data.description,
                 action_type=ActionType(action_data.action_type.value),
@@ -159,12 +158,10 @@ class ActionLibraryService:
                     action_data.implementation_type.value
                 ),
                 erpnext_module=action_data.erpnext_module,
-                robot_framework_code=action_data.robot_framework_code,
-                expected_execution_time=action_data.expected_execution_time,
+                robot_keywords=action_data.robot_keywords,
+                execution_timeout=action_data.execution_timeout,
                 retry_count=action_data.retry_count,
-                timeout_seconds=action_data.timeout_seconds,
                 tags=action_data.tags,
-                metadata=action_data.metadata,
             )
 
             # Add parameters if provided
@@ -173,8 +170,8 @@ class ActionLibraryService:
                     await self._add_parameter_to_action(action, param_data)
 
             # Add outputs if provided
-            if action_data.outputs:
-                for output_data in action_data.outputs:
+            if action_data.expected_outputs:
+                for output_data in action_data.expected_outputs:
                     await self._add_output_to_action(action, output_data)
 
             # Validate action comprehensive
@@ -270,17 +267,14 @@ class ActionLibraryService:
         if update_data.description is not None:
             action.update_description(update_data.description)
 
-        if update_data.robot_framework_code is not None:
-            action.update_robot_framework_code(update_data.robot_framework_code)
+        if update_data.robot_keywords is not None:
+            action.update_robot_keywords(update_data.robot_keywords)
 
-        if update_data.expected_execution_time is not None:
-            action.update_expected_execution_time(update_data.expected_execution_time)
+        if update_data.execution_timeout is not None:
+            action.update_details(execution_timeout=update_data.execution_timeout)
 
         if update_data.retry_count is not None:
-            action.update_retry_count(update_data.retry_count)
-
-        if update_data.timeout_seconds is not None:
-            action.update_timeout_seconds(update_data.timeout_seconds)
+            action.update_details(retry_count=update_data.retry_count)
 
         if update_data.tags is not None:
             action.update_tags(update_data.tags)
@@ -481,7 +475,7 @@ class ActionLibraryService:
     # Private helper methods
 
     async def _add_parameter_to_action(
-        self, action: ActionLibrary, param_data: ActionParameterSchema
+        self, action: Action, param_data: ActionParameterSchema
     ) -> None:
         """Add parameter to action."""
         parameter = ActionParameter.create_parameter(
@@ -496,7 +490,7 @@ class ActionLibraryService:
         action.add_parameter(parameter)
 
     async def _add_output_to_action(
-        self, action: ActionLibrary, output_data: ActionOutputSchema
+        self, action: Action, output_data: ActionOutputSchema
     ) -> None:
         """Add output to action."""
         output = ActionOutput.create_output(
@@ -508,7 +502,7 @@ class ActionLibraryService:
         )
         action.add_output(output)
 
-    async def _validate_action_comprehensive(self, action: ActionLibrary) -> list[str]:
+    async def _validate_action_comprehensive(self, action: Action) -> list[str]:
         """Perform comprehensive action validation."""
         errors = []
 
@@ -519,22 +513,23 @@ class ActionLibraryService:
         if not action.description or len(action.description.strip()) < 10:
             errors.append("Action description must be at least 10 characters")
 
-        if not action.robot_framework_code:
-            errors.append("Robot Framework code is required")
+        if not action.robot_keywords:
+            errors.append("Robot Framework keywords are required")
 
         # Validate parameters
         for parameter in action.parameters:
-            param_errors = self.parameter_validator.validate_parameter(parameter)
-            errors.extend(param_errors)
+            param_errors = parameter.validate_value(parameter.default_value if parameter.default_value is not None else None)
+            if param_errors:
+                errors.extend([f"Parameter '{parameter.name}': {error}" for error in param_errors])
 
         # Validate outputs
-        for output in action.outputs:
+        for output in action.expected_outputs:
             if not output.name or not output.description:
                 errors.append(f"Output '{output.name}' must have name and description")
 
         return errors
 
-    async def _get_action_warnings(self, action: ActionLibrary) -> list[str]:
+    async def _get_action_warnings(self, action: Action) -> list[str]:
         """Get action warnings."""
         warnings = []
 
@@ -546,7 +541,7 @@ class ActionLibraryService:
 
         return warnings
 
-    async def _get_action_suggestions(self, action: ActionLibrary) -> list[str]:
+    async def _get_action_suggestions(self, action: Action) -> list[str]:
         """Get action improvement suggestions."""
         suggestions = []
 
@@ -559,11 +554,11 @@ class ActionLibraryService:
         return suggestions
 
     async def _convert_to_response_schema(
-        self, action: ActionLibrary
+        self, action: Action
     ) -> ActionResponseSchema:
         """Convert action entity to response schema."""
         return ActionResponseSchema(
-            id=action.action_id,
+            id=action.id,
             name=action.name,
             description=action.description,
             action_type=action.action_type.value,
@@ -572,31 +567,31 @@ class ActionLibraryService:
             parameters=[
                 self._convert_parameter_to_schema(p) for p in action.parameters
             ],
-            outputs=[self._convert_output_to_schema(o) for o in action.outputs],
-            robot_framework_code=action.robot_framework_code,
-            expected_execution_time=action.expected_execution_time,
+            expected_outputs=[self._convert_output_to_schema(o) for o in action.expected_outputs],
+            parameter_count=len(action.parameters),
+            output_count=len(action.expected_outputs),
+            robot_keywords=action.robot_keywords,
+            execution_timeout=action.execution_timeout,
             retry_count=action.retry_count,
-            timeout_seconds=action.timeout_seconds,
             tags=action.tags,
-            metadata=action.metadata,
             is_active=action.is_active,
             created_at=action.created_at,
             updated_at=action.updated_at,
         )
 
     async def _convert_to_list_item_schema(
-        self, action: ActionLibrary
+        self, action: Action
     ) -> ActionListItemSchema:
         """Convert action entity to list item schema."""
         return ActionListItemSchema(
-            id=action.action_id,
+            id=action.id,
             name=action.name,
             description=action.description,
             action_type=action.action_type.value,
             implementation_type=action.implementation_type.value,
             erpnext_module=action.erpnext_module,
             parameter_count=len(action.parameters),
-            output_count=len(action.outputs),
+            output_count=len(action.expected_outputs),
             expected_execution_time=action.expected_execution_time,
             tags=action.tags,
             is_active=action.is_active,

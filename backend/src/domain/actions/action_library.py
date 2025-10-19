@@ -54,6 +54,7 @@ class ActionParameter:
         description: Optional[str] = None,
         default_value: Any = None,
         validation_rules: Optional[dict[str, Any]] = None,
+        example_values: Optional[list[Any]] = None,
     ) -> None:
         """
         Initialize action parameter.
@@ -65,13 +66,16 @@ class ActionParameter:
             description: Parameter description
             default_value: Default value if not provided
             validation_rules: Additional validation rules
+            example_values: Example values for documentation
         """
+        self.parameter_id = str(uuid4())  # Add parameter_id
         self.name = name
         self.parameter_type = parameter_type
-        self.required = required
+        self.is_required = required  # Use is_required instead of required
         self.description = description or ""
         self.default_value = default_value
         self.validation_rules = validation_rules or {}
+        self.example_values = example_values or []
 
     def validate_value(self, value: Any) -> list[str]:
         """
@@ -86,7 +90,7 @@ class ActionParameter:
         errors = []
 
         # Check required
-        if self.required and (value is None or value == ""):
+        if self.is_required and (value is None or value == ""):
             errors.append(f"Parameter '{self.name}' is required")
             return errors
 
@@ -139,6 +143,8 @@ class ActionOutput:
         output_type: str,
         description: Optional[str] = None,
         expected_format: Optional[str] = None,
+        data_path: Optional[str] = None,
+        validation_schema: Optional[dict[str, Any]] = None,
     ) -> None:
         """
         Initialize action output.
@@ -148,11 +154,16 @@ class ActionOutput:
             output_type: Output data type
             description: Output description
             expected_format: Expected format/pattern
+            data_path: JSON path or field reference for extraction
+            validation_schema: JSON schema for output validation
         """
+        self.output_id = str(uuid4())  # Add output_id
         self.name = name
         self.output_type = output_type
         self.description = description or ""
         self.expected_format = expected_format
+        self.data_path = data_path
+        self.validation_schema = validation_schema or {}
 
 
 class Action(BaseEntity):

@@ -93,7 +93,7 @@ class ActionLibraryModel(BaseModel, TimestampMixin, AuditMixin):
 
     # Tagging and metadata
     tags = Column(JSONType, nullable=True, default=list)  # Array of string tags
-    metadata = Column(JSONType, nullable=True, default=dict)
+    action_metadata = Column(JSONType, nullable=True, default=dict)
 
     # ERPNext specific fields
     erpnext_doctype = Column(String(255), nullable=True, index=True)
@@ -127,6 +127,8 @@ class ActionLibraryModel(BaseModel, TimestampMixin, AuditMixin):
         cascade="all, delete-orphan",
     )
     journey_steps = relationship("JourneyStepModel", back_populates="action")
+    parameters = relationship("ActionParameterModel", back_populates="action", cascade="all, delete-orphan")
+    outputs = relationship("ActionOutputModel", back_populates="action", cascade="all, delete-orphan")
 
     # Table constraints
     __table_args__ = (
@@ -138,7 +140,7 @@ class ActionLibraryModel(BaseModel, TimestampMixin, AuditMixin):
             "default_retry_count >= 0", name="ck_action_non_negative_retry"
         ),
         CheckConstraint(
-            "action_type IN ('ui_interaction', 'data_manipulation', 'verification', 'api_call', 'navigation', 'setup', 'cleanup', 'wait', 'assertion', 'file_operation', 'database_operation')",
+            "action_type IN ('ui_interaction', 'data_manipulation', 'verification', 'api_call', 'navigation', 'setup', 'cleanup', 'wait', 'assertion', 'file_operation', 'database_operation', 'robot_framework')",
             name="ck_action_valid_action_type",
         ),
         CheckConstraint(
@@ -188,7 +190,7 @@ class ActionLibraryModel(BaseModel, TimestampMixin, AuditMixin):
         Index("ix_action_prerequisites_gin", "prerequisites", postgresql_using="gin"),
         Index("ix_action_postconditions_gin", "postconditions", postgresql_using="gin"),
         Index("ix_action_tags_gin", "tags", postgresql_using="gin"),
-        Index("ix_action_metadata_gin", "metadata", postgresql_using="gin"),
+        Index("ix_action_metadata_gin", "action_metadata", postgresql_using="gin"),
         Index("ix_action_ui_selectors_gin", "ui_selectors", postgresql_using="gin"),
         # Text search indexes
         Index(
@@ -450,7 +452,7 @@ class ActionRelationshipModel(BaseModel, TimestampMixin):
     conditions = Column(
         JSONType, nullable=True, default=dict
     )  # When this relationship applies
-    metadata = Column(JSONType, nullable=True, default=dict)
+    relationship_metadata = Column(JSONType, nullable=True, default=dict)
 
     # Relationship status
     is_active = Column(Boolean, nullable=False, default=True, index=True)
@@ -501,7 +503,7 @@ class ActionRelationshipModel(BaseModel, TimestampMixin):
         Index("ix_relationship_active", "is_active"),
         # JSON indexes
         Index("ix_relationship_conditions_gin", "conditions", postgresql_using="gin"),
-        Index("ix_relationship_metadata_gin", "metadata", postgresql_using="gin"),
+        Index("ix_relationship_metadata_gin", "relationship_metadata", postgresql_using="gin"),
         Index(
             "ix_relationship_context_tags_gin", "context_tags", postgresql_using="gin"
         ),
@@ -559,7 +561,7 @@ class ActionUsageTrackingModel(BaseModel, TimestampMixin):
     # Usage metadata
     user_agent = Column(String(255), nullable=True)
     session_id = Column(String(255), nullable=True, index=True)
-    metadata = Column(JSONType, nullable=True, default=dict)
+    usage_metadata = Column(JSONType, nullable=True, default=dict)
 
     # Relationships
     action = relationship("ActionLibraryModel")
@@ -595,10 +597,96 @@ class ActionUsageTrackingModel(BaseModel, TimestampMixin):
         Index("ix_usage_time_partitioning", "used_at"),  # For time-based partitioning
         # JSON indexes
         Index("ix_usage_parameters_gin", "parameters_used", postgresql_using="gin"),
-        Index("ix_usage_metadata_gin", "metadata", postgresql_using="gin"),
+        Index("ix_usage_metadata_gin", "usage_metadata", postgresql_using="gin"),
     )
 
     def __repr__(self):
         return (
             f"<ActionUsageTracking(action_id={self.action_id}, used_at={self.used_at})>"
         )
+
+
+class ActionParameterModel(BaseModel, TimestampMixin):
+    """
+    Action parameter model for storing action input parameters.
+
+    Links parameters to their parent actions with full metadata support.
+    """
+
+    __tablename__ = "action_parameters"
+
+    # Primary key
+    id = Column(UUIDType(36), primary_key=True, default=uuid_default)
+
+    # Foreign key to action
+    action_id = Column(
+        UUIDType(36), ForeignKey("action_library.id"), nullable=False, index=True
+    )
+
+    # Parameter definition
+    name = Column(String(255), nullable=False, index=True)
+    parameter_type = Column(String(50), nullable=False, index=True)  # string, number, boolean, etc.
+    description = Column(Text, nullable=True)
+    is_required = Column(Boolean, nullable=False, default=True, index=True)
+    default_value = Column(JSONType, nullable=True)
+    validation_rules = Column(JSONType, nullable=True, default=dict)
+    example_values = Column(JSONType, nullable=True, default=list)
+
+    # Relationships
+    action = relationship("ActionLibraryModel", back_populates="parameters")
+
+    # Table constraints
+    __table_args__ = (
+        # Unique constraint
+        UniqueConstraint("action_id", "name", name="uq_action_parameter_name"),
+        # Indexes
+        Index("ix_action_parameter_type", "parameter_type"),
+        Index("ix_action_parameter_required", "is_required"),
+        # JSON indexes
+        Index("ix_parameter_validation_gin", "validation_rules", postgresql_using="gin"),
+        Index("ix_parameter_examples_gin", "example_values", postgresql_using="gin"),
+    )
+
+    def __repr__(self):
+        return f"<ActionParameter(action_id={self.action_id}, name={self.name})>"
+
+
+class ActionOutputModel(BaseModel, TimestampMixin):
+    """
+    Action output model for storing action output definitions.
+
+    Defines expected outputs from action execution with validation schemas.
+    """
+
+    __tablename__ = "action_outputs"
+
+    # Primary key
+    id = Column(UUIDType(36), primary_key=True, default=uuid_default)
+
+    # Foreign key to action
+    action_id = Column(
+        UUIDType(36), ForeignKey("action_library.id"), nullable=False, index=True
+    )
+
+    # Output definition
+    name = Column(String(255), nullable=False, index=True)
+    output_type = Column(String(50), nullable=False, index=True)  # string, number, boolean, etc.
+    description = Column(Text, nullable=True)
+    data_path = Column(String(500), nullable=True)  # JSON path or field reference
+    validation_schema = Column(JSONType, nullable=True, default=dict)
+
+    # Relationships
+    action = relationship("ActionLibraryModel", back_populates="outputs")
+
+    # Table constraints
+    __table_args__ = (
+        # Unique constraint
+        UniqueConstraint("action_id", "name", name="uq_action_output_name"),
+        # Indexes
+        Index("ix_action_output_type", "output_type"),
+        # JSON indexes
+        Index("ix_output_validation_gin", "validation_schema", postgresql_using="gin"),
+    )
+
+    def __repr__(self):
+        return f"<ActionOutput(action_id={self.action_id}, name={self.name})>"

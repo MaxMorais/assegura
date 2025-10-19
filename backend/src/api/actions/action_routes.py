@@ -32,23 +32,23 @@ from ...application.dto.action_schemas import (
 from ...application.dto.base_schemas import PaginatedResponse
 from ...application.services.action_service import ActionLibraryService
 from ...domain.actions.action_library import ActionType, ImplementationType
-from ...infrastructure.database.config import get_db
+from ...infrastructure.database import get_sync_db
 from ...infrastructure.database.repositories.action_repository import (
     SQLAlchemyActionRepository,
 )
 
 # Create router for action library endpoints
-router = APIRouter()
+router = APIRouter(prefix="/actions", tags=["actions"])
 
 
-def get_service(db: Session = Depends(get_db)):
+def get_service(db: Session = Depends(get_sync_db)):
     """Dependency to get action library service."""
     action_repo = SQLAlchemyActionRepository(db)
     return ActionLibraryService(action_repo)
 
 
 @router.post(
-    "/actions",
+    "/",
     response_model=ActionResponseSchema,
     status_code=status.HTTP_201_CREATED,
     summary="Create new action",
@@ -71,7 +71,7 @@ async def create_action(
 
 
 @router.get(
-    "/actions/{action_id}",
+    "/{action_id}",
     response_model=ActionResponseSchema,
     summary="Get action by ID",
     description="Retrieve action details including parameters and outputs",
@@ -96,7 +96,7 @@ async def get_action(
 
 
 @router.get(
-    "/actions",
+    "/",
     response_model=PaginatedResponse[ActionListItemSchema],
     summary="List actions",
     description="List actions with filtering, sorting, and pagination",
@@ -151,7 +151,7 @@ async def list_actions(
 
 
 @router.put(
-    "/actions/{action_id}",
+    "/{action_id}",
     response_model=ActionResponseSchema,
     summary="Update action",
     description="Update action details and properties",
@@ -179,7 +179,7 @@ async def update_action(
 
 
 @router.delete(
-    "/actions/{action_id}",
+    "/{action_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete action",
     description="Delete action from library",
@@ -209,7 +209,7 @@ async def delete_action(
 
 
 @router.post(
-    "/actions/{action_id}/validate",
+    "/{action_id}/validate",
     response_model=ActionValidationResultSchema,
     summary="Validate action",
     description="Perform comprehensive action validation",
@@ -234,7 +234,7 @@ async def validate_action(
 
 
 @router.get(
-    "/actions/{action_id}/complexity-score",
+    "/{action_id}/complexity-score",
     response_model=ActionComplexityScoreSchema,
     summary="Get complexity score",
     description="Calculate action complexity score and breakdown",
@@ -259,7 +259,7 @@ async def get_action_complexity_score(
 
 
 @router.get(
-    "/actions/{action_id}/usage-stats",
+    "/{action_id}/usage-stats",
     response_model=ActionUsageStatsSchema,
     summary="Get usage statistics",
     description="Retrieve action usage and performance statistics",
@@ -287,7 +287,7 @@ async def get_action_usage_stats(
 
 
 @router.get(
-    "/actions/by-module/{erpnext_module}",
+    "/by-module/{erpnext_module}",
     response_model=list[ActionResponseSchema],
     summary="Get actions by module",
     description="Retrieve all actions for specific ERPNext module",
@@ -310,7 +310,7 @@ async def get_actions_by_module(
 
 
 @router.post(
-    "/actions/suggestions",
+    "/suggestions",
     response_model=list[ActionSuggestionSchema],
     summary="Get action suggestions",
     description="Get action suggestions based on criteria and patterns",
@@ -335,7 +335,7 @@ async def get_action_suggestions(
 
 
 @router.post(
-    "/actions/bulk",
+    "/bulk",
     response_model=ActionBulkResultSchema,
     summary="Bulk action operations",
     description="Perform bulk operations on multiple actions",
@@ -358,7 +358,7 @@ async def bulk_action_operation(
 
 
 @router.post(
-    "/action-templates",
+    "/templates",
     summary="Create action template",
     description="Create reusable action template",
 )
@@ -381,7 +381,7 @@ async def create_action_template(
 
 
 @router.post(
-    "/actions/from-template",
+    "/from-template",
     response_model=ActionResponseSchema,
     status_code=status.HTTP_201_CREATED,
     summary="Create action from template",
@@ -409,7 +409,7 @@ async def create_action_from_template(
 
 
 @router.get(
-    "/actions/types",
+    "/types",
     summary="Get action types",
     description="Retrieve available action types and their descriptions",
 )
@@ -428,7 +428,7 @@ async def get_action_types():
 
 
 @router.get(
-    "/actions/implementation-types",
+    "/implementation-types",
     summary="Get implementation types",
     description="Retrieve available implementation types and their descriptions",
 )
@@ -450,7 +450,7 @@ async def get_implementation_types():
 
 
 @router.get(
-    "/actions/health",
+    "/health",
     summary="Action library health check",
     description="Check action library system health and statistics",
 )

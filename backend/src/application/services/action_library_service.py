@@ -35,12 +35,10 @@ from src.application.dto.action_library_schemas import (
     ActionLibraryValidationSchema,
 )
 from src.application.dto.base_schemas import PaginatedResponse
-from src.domain.actions.action_relationship_service import ActionRelationshipService
-from src.domain.actions.action_validator import ActionValidator
-from src.domain.actions.enhanced_action_library import (
-    ActionCategory,
-    BDDStepType,
-    EnhancedActionLibrary,
+from src.domain.actions.action_library import (
+    Action,
+    ActionType,
+    ImplementationType,
 )
 
 
@@ -48,17 +46,17 @@ class ActionLibraryRepositoryInterface(ABC):
     """Abstract interface for action library data persistence."""
 
     @abstractmethod
-    async def create(self, action: EnhancedActionLibrary) -> EnhancedActionLibrary:
+    async def create(self, action: Action) -> Action:
         """Create a new action."""
         pass
 
     @abstractmethod
-    async def get_by_id(self, action_id: UUID) -> Optional[EnhancedActionLibrary]:
+    async def get_by_id(self, action_id: UUID) -> Optional[Action]:
         """Get action by ID."""
         pass
 
     @abstractmethod
-    async def get_by_name(self, name: str) -> Optional[EnhancedActionLibrary]:
+    async def get_by_name(self, name: str) -> Optional[Action]:
         """Get action by name."""
         pass
 
@@ -69,19 +67,19 @@ class ActionLibraryRepositoryInterface(ABC):
         sort: Optional[ActionLibrarySortSchema] = None,
         offset: int = 0,
         limit: int = 100,
-    ) -> tuple[list[EnhancedActionLibrary], int]:
+    ) -> tuple[list[Action], int]:
         """List actions with filtering, sorting and pagination."""
         pass
 
     @abstractmethod
     async def search_actions(
         self, search_criteria: ActionLibrarySearchSchema
-    ) -> list[EnhancedActionLibrary]:
+    ) -> list[Action]:
         """Search actions by various criteria."""
         pass
 
     @abstractmethod
-    async def update(self, action: EnhancedActionLibrary) -> EnhancedActionLibrary:
+    async def update(self, action: Action) -> Action:
         """Update existing action."""
         pass
 
@@ -92,15 +90,15 @@ class ActionLibraryRepositoryInterface(ABC):
 
     @abstractmethod
     async def get_actions_by_category(
-        self, category: ActionCategory
-    ) -> list[EnhancedActionLibrary]:
+        self, category: ActionType
+    ) -> list[Action]:
         """Get actions by category."""
         pass
 
     @abstractmethod
     async def get_actions_by_bdd_type(
-        self, bdd_type: BDDStepType
-    ) -> list[EnhancedActionLibrary]:
+        self, bdd_type: ImplementationType
+    ) -> list[Action]:
         """Get actions by BDD step type."""
         pass
 
@@ -118,8 +116,8 @@ class ActionLibraryRepositoryInterface(ABC):
 
     @abstractmethod
     async def get_duplicate_candidates(
-        self, action: EnhancedActionLibrary
-    ) -> list[EnhancedActionLibrary]:
+        self, action: Action
+    ) -> list[Action]:
         """Find potential duplicate actions."""
         pass
 
@@ -154,11 +152,8 @@ class ActionLibraryService:
     def __init__(
         self,
         action_repository: ActionLibraryRepositoryInterface,
-        action_relationship_service: ActionRelationshipService,
     ):
         self.action_repository = action_repository
-        self.action_relationship_service = action_relationship_service
-        self.validator = ActionValidator()
         self._action_templates: dict[str, ActionLibraryTemplateSchema] = {}
 
     async def create_action(
@@ -187,23 +182,18 @@ class ActionLibraryService:
                 )
 
             # Create enhanced action
-            action = EnhancedActionLibrary.create_enhanced(
+            action = Action.create(
                 name=action_data.name,
                 description=action_data.description,
                 action_type=action_data.action_type,
-                bdd_step_type=action_data.bdd_step_type,
-                category=action_data.category,
-                implementation=action_data.implementation,
-                parameters_schema=action_data.parameters_schema,
-                expected_outputs_schema=action_data.expected_outputs_schema,
-                default_timeout_seconds=action_data.default_timeout_seconds,
-                default_retry_count=action_data.default_retry_count,
+                erpnext_module=action_data.erpnext_doctype or "General",
+                implementation_type=action_data.implementation,
+                execution_timeout=action_data.default_timeout_seconds,
+                retry_count=action_data.default_retry_count,
                 prerequisites=action_data.prerequisites,
                 postconditions=action_data.postconditions,
                 tags=action_data.tags,
                 metadata=action_data.metadata,
-                erpnext_doctype=action_data.erpnext_doctype,
-                ui_selectors=action_data.ui_selectors,
             )
 
             # Validate action
@@ -447,7 +437,7 @@ class ActionLibraryService:
             raise ActionLibraryServiceError(f"Failed to validate action: {str(e)}")
 
     async def get_actions_by_category(
-        self, category: ActionCategory
+        self, category: ActionType
     ) -> list[ActionLibraryListItemSchema]:
         """Get actions by category."""
         try:
@@ -462,7 +452,7 @@ class ActionLibraryService:
             )
 
     async def get_actions_by_bdd_type(
-        self, bdd_type: BDDStepType
+        self, bdd_type: ImplementationType
     ) -> list[ActionLibraryListItemSchema]:
         """Get actions by BDD step type."""
         try:
@@ -537,7 +527,7 @@ class ActionLibraryService:
 
             # Calculate category statistics
             category_stats = []
-            for category in ActionCategory:
+            for category in ActionType:
                 category_actions = await self.action_repository.get_actions_by_category(
                     category
                 )
@@ -714,13 +704,12 @@ class ActionLibraryService:
     ) -> ActionLibraryDuplicateCheckSchema:
         """Check for potential duplicate actions based on name and implementation."""
         # Create temporary action for duplicate checking
-        temp_action = EnhancedActionLibrary.create_enhanced(
+        temp_action = Action.create(
             name=action_data.name,
             description=action_data.description,
             action_type=action_data.action_type,
-            bdd_step_type=action_data.bdd_step_type,
-            category=action_data.category,
-            implementation=action_data.implementation,
+            erpnext_module=action_data.erpnext_doctype or "General",
+            implementation_type=action_data.implementation,
         )
 
         duplicates = await self.action_repository.get_duplicate_candidates(temp_action)
@@ -739,7 +728,7 @@ class ActionLibraryService:
         )
 
     def _calculate_similarity_score(
-        self, action1: EnhancedActionLibrary, action2: EnhancedActionLibrary
+        self, action1: Action, action2: Action
     ) -> float:
         """Calculate similarity score between two actions."""
         # Simplified similarity calculation - real implementation would be more sophisticated
@@ -774,7 +763,7 @@ class ActionLibraryService:
         return min(score, 1.0)
 
     def _calculate_search_relevance(
-        self, action: EnhancedActionLibrary, search_criteria: ActionLibrarySearchSchema
+        self, action: Action, search_criteria: ActionLibrarySearchSchema
     ) -> float:
         """Calculate search relevance score for an action."""
         score = 0.0
@@ -810,7 +799,7 @@ class ActionLibraryService:
         return score
 
     def _validate_parameters(
-        self, action: EnhancedActionLibrary
+        self, action: Action
     ) -> ActionLibraryParameterValidationSchema:
         """Validate action parameters schema."""
         try:
@@ -835,7 +824,7 @@ class ActionLibraryService:
                 schema_warnings=[],
             )
 
-    def _validate_implementation(self, action: EnhancedActionLibrary) -> dict[str, Any]:
+    def _validate_implementation(self, action: Action) -> dict[str, Any]:
         """Validate action implementation."""
         validation_results = {
             "is_valid": True,
@@ -860,7 +849,7 @@ class ActionLibraryService:
 
         return validation_results
 
-    def _validate_bdd_compliance(self, action: EnhancedActionLibrary) -> dict[str, Any]:
+    def _validate_bdd_compliance(self, action: Action) -> dict[str, Any]:
         """Validate BDD compliance."""
         return {
             "is_bdd_compliant": True,
@@ -870,7 +859,7 @@ class ActionLibraryService:
         }
 
     async def _convert_to_response_schema(
-        self, action: EnhancedActionLibrary, include_details: bool = True
+        self, action: Action, include_details: bool = True
     ) -> ActionLibraryResponseSchema:
         """Convert action to response schema."""
 
@@ -926,7 +915,7 @@ class ActionLibraryService:
         return ActionLibraryResponseSchema(**response_data)
 
     async def _convert_to_list_item_schema(
-        self, action: EnhancedActionLibrary
+        self, action: Action
     ) -> ActionLibraryListItemSchema:
         """Convert action to list item schema."""
         return ActionLibraryListItemSchema(

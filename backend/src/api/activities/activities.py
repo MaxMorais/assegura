@@ -59,13 +59,13 @@ def get_activity_service(db: Session = Depends(get_sync_db)) -> ActivityApplicat
     summary="Create new activity",
     description="Create a new business activity with validation.",
 )
-def create_activity(
+async def create_activity(
     request: ActivityCreateRequestDTO,
     service: ActivityApplicationService = Depends(get_activity_service),
 ) -> ActivityResponseDTO:
     """Create a new activity."""
     try:
-        activity = service.create_activity(request)
+        activity = await service.create_activity(request)
         return activity
     except Exception as e:
         # Log the full exception for debugging

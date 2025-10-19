@@ -97,6 +97,7 @@ class ActivityModel(Base):
         back_populates="activity",
         cascade="all, delete-orphan",
     )
+    journeys = relationship("JourneyModel", back_populates="activity")
 
     # Constraints
     __table_args__ = (

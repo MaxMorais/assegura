@@ -8,6 +8,7 @@ import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 
 from .base import Base
 
@@ -97,6 +98,9 @@ class PersonaModel(Base):
         default=1,
         comment="Version number for optimistic concurrency control",
     )
+
+    # Relationships
+    journeys = relationship("JourneyModel", back_populates="persona")
 
     def __repr__(self) -> str:
         """String representation of PersonaModel."""

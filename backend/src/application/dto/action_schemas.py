@@ -13,7 +13,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, validator
 
-from src.application.dto.base_schemas import BaseResponseSchema, PaginatedResponse
+from src.application.dto.base_schemas import EntityDTO, PaginatedResponse
 
 
 class ActionTypeEnum(str, Enum):
@@ -377,7 +377,7 @@ class ActionUsageStatsSchema(BaseModel):
     )
 
 
-class ActionResponseSchema(ActionBaseSchema, BaseResponseSchema):
+class ActionResponseSchema(ActionBaseSchema, EntityDTO):
     """Schema for action API responses."""
 
     parameters: list[ActionParameterSchema] = Field(
@@ -460,10 +460,10 @@ class ActionSortSchema(BaseModel):
     sort_by: str = Field(
         default="created_at",
         description="Field to sort by",
-        regex="^(name|created_at|updated_at|usage_count|parameter_count|action_type)$",
+        pattern="^(name|created_at|updated_at|usage_count|parameter_count|action_type)$",
     )
     sort_order: str = Field(
-        default="desc", description="Sort order", regex="^(asc|desc)$"
+        default="desc", description="Sort order", pattern="^(asc|desc)$"
     )
 
 
@@ -511,7 +511,7 @@ class ActionBulkOperationSchema(BaseModel):
     )
     operation: str = Field(
         ...,
-        regex="^(activate|deactivate|deprecate|delete|tag)$",
+        pattern="^(activate|deactivate|deprecate|delete|tag)$",
         description="Operation",
     )
     parameters: Optional[dict[str, Any]] = Field(

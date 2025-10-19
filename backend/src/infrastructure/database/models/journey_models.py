@@ -84,7 +84,7 @@ class JourneyModel(BaseModel, TimestampMixin):
     # Journey content (JSON fields for flexibility)
     prerequisites = Column(JSONType, nullable=True, default=list)
     expected_outcomes = Column(JSONType, nullable=True, default=list)
-    metadata = Column(JSONType, nullable=True, default=dict)
+    journey_metadata = Column(JSONType, nullable=True, default=dict)
 
     # Usage tracking
     usage_count = Column(Integer, nullable=False, default=0)
@@ -125,7 +125,7 @@ class JourneyModel(BaseModel, TimestampMixin):
             name="ck_journey_valid_complexity",
         ),
         CheckConstraint(
-            "execution_status IN ('not_started', 'ready', 'running', 'suspended', 'completed', 'failed', 'cancelled')",
+            "execution_status IN ('not_started', 'draft', 'ready', 'running', 'suspended', 'completed', 'failed', 'cancelled')",
             name="ck_journey_valid_execution_status",
         ),
         CheckConstraint("usage_count >= 0", name="ck_journey_positive_usage_count"),
@@ -140,7 +140,7 @@ class JourneyModel(BaseModel, TimestampMixin):
         Index("ix_journey_usage_tracking", "usage_count", "last_used_date"),
         Index("ix_journey_created_updated", "created_at", "updated_at"),
         # JSON indexes for metadata queries
-        Index("ix_journey_metadata_gin", "metadata", postgresql_using="gin"),
+        Index("ix_journey_metadata_gin", "journey_metadata", postgresql_using="gin"),
         Index("ix_journey_prerequisites_gin", "prerequisites", postgresql_using="gin"),
         Index(
             "ix_journey_expected_outcomes_gin",

@@ -87,7 +87,7 @@ class PersonaService:
         # Save persona using unit of work
         async with self.unit_of_work:
             saved_persona = await self.persona_repository.save(persona)
-            await self.unit_of_work.commit()
+            self.unit_of_work.commit()
 
         logger.info(f"Created persona with ID: {saved_persona.id}")
         return self._to_response(saved_persona)
@@ -244,7 +244,7 @@ class PersonaService:
         # Save updated persona using unit of work
         async with self.unit_of_work:
             saved_persona = await self.persona_repository.save(updated_persona)
-            await self.unit_of_work.commit()
+            self.unit_of_work.commit()
 
         logger.info(f"Updated persona: {persona_id}")
         return self._to_response(saved_persona)
@@ -273,7 +273,7 @@ class PersonaService:
         # Delete persona using unit of work
         async with self.unit_of_work:
             await self.persona_repository.delete(persona_id)
-            await self.unit_of_work.commit()
+            self.unit_of_work.commit()
 
         logger.info(f"Deleted persona: {persona_id}")
 
@@ -497,7 +497,7 @@ class PersonaService:
 
         async with self.unit_of_work:
             saved_persona = await self.persona_repository.save(persona)
-            await self.unit_of_work.commit()
+            self.unit_of_work.commit()
 
         logger.info(f"Activated persona: {persona_id}")
         return self._to_response(saved_persona)
@@ -522,7 +522,7 @@ class PersonaService:
 
         async with self.unit_of_work:
             saved_persona = await self.persona_repository.save(persona)
-            await self.unit_of_work.commit()
+            self.unit_of_work.commit()
 
         logger.info(f"Deactivated persona: {persona_id}")
         return self._to_response(saved_persona)

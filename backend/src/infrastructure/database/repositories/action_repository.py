@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session, selectinload
 from src.application.dto.action_schemas import ActionFilterSchema, ActionSortSchema
 from src.application.services.action_service import ActionRepositoryInterface
 from src.domain.actions.action_library import (
-    ActionLibrary,
+    Action,
     ActionOutput,
     ActionParameter,
     ActionType,
@@ -42,10 +42,24 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
     """SQLAlchemy implementation of action library repository."""
 
     def __init__(self, db_session: Session):
-        super().__init__(db_session)
-        self.model_class = ActionLibraryModel
+        super().__init__(db_session, ActionLibraryModel)
 
-    async def create(self, action: ActionLibrary) -> ActionLibrary:
+    def _entity_to_model(self, entity: Action) -> ActionLibraryModel:
+        """Convert Action entity to ActionLibraryModel."""
+        return self._convert_domain_to_model(entity)
+
+    def _model_to_entity(self, model: ActionLibraryModel) -> Action:
+        """Convert ActionLibraryModel to Action entity."""
+        # Note: This is a synchronous version for BaseRepository compatibility
+        # The async version _convert_model_to_domain should be used in async contexts
+        import asyncio
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(self._convert_model_to_domain(model))
+        finally:
+            loop.close()
+
+    async def create(self, action: Action) -> Action:
         """
         Create a new action in the database.
 
@@ -63,23 +77,23 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
             action_model = self._convert_domain_to_model(action)
 
             # Add to database
-            self.db.add(action_model)
-            self.db.commit()
-            self.db.refresh(action_model)
+            self.session.add(action_model)
+            self.session.commit()
+            self.session.refresh(action_model)
 
             # Convert back to domain object
             return await self._convert_model_to_domain(action_model)
 
         except IntegrityError as e:
-            self.db.rollback()
+            self.session.rollback()
             raise ActionRepositoryError(
                 f"Action creation failed due to constraint violation: {e}"
             )
         except SQLAlchemyError as e:
-            self.db.rollback()
+            self.session.rollback()
             raise ActionRepositoryError(f"Database error during action creation: {e}")
 
-    async def get_by_id(self, action_id: UUID) -> Optional[ActionLibrary]:
+    async def get_by_id(self, action_id: UUID) -> Optional[Action]:
         """
         Get action by ID.
 
@@ -91,7 +105,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
         """
         try:
             query = (
-                self.db.query(ActionLibraryModel)
+                self.session.query(ActionLibraryModel)
                 .options(
                     selectinload(ActionLibraryModel.parameters),
                     selectinload(ActionLibraryModel.outputs),
@@ -110,7 +124,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
 
     async def get_by_name_and_type(
         self, name: str, action_type: ActionType
-    ) -> Optional[ActionLibrary]:
+    ) -> Optional[Action]:
         """
         Get action by name and type.
 
@@ -123,7 +137,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
         """
         try:
             query = (
-                self.db.query(ActionLibraryModel)
+                self.session.query(ActionLibraryModel)
                 .options(
                     selectinload(ActionLibraryModel.parameters),
                     selectinload(ActionLibraryModel.outputs),
@@ -151,7 +165,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
         sort: Optional[ActionSortSchema] = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> tuple[list[ActionLibrary], int]:
+    ) -> tuple[list[Action], int]:
         """
         List actions with filtering and pagination.
 
@@ -166,7 +180,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
         """
         try:
             # Base query with eager loading
-            query = self.db.query(ActionLibraryModel).options(
+            query = self.session.query(ActionLibraryModel).options(
                 selectinload(ActionLibraryModel.parameters),
                 selectinload(ActionLibraryModel.outputs),
             )
@@ -202,7 +216,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
         except SQLAlchemyError as e:
             raise ActionRepositoryError(f"Database error during action listing: {e}")
 
-    async def update(self, action: ActionLibrary) -> ActionLibrary:
+    async def update(self, action: Action) -> Action:
         """
         Update existing action.
 
@@ -218,14 +232,14 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
         try:
             # Get existing model
             action_model = (
-                self.db.query(ActionLibraryModel)
-                .filter(ActionLibraryModel.id == action.action_id)
+                self.session.query(ActionLibraryModel)
+                .filter(ActionLibraryModel.id == action.id)
                 .first()
             )
 
             if not action_model:
                 raise ActionRepositoryError(
-                    f"Action with ID {action.action_id} not found"
+                    f"Action with ID {action.id} not found"
                 )
 
             # Update model from domain object
@@ -236,18 +250,18 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
             await self._update_action_outputs(action_model, action)
 
             # Commit changes
-            self.db.commit()
-            self.db.refresh(action_model)
+            self.session.commit()
+            self.session.refresh(action_model)
 
             return await self._convert_model_to_domain(action_model)
 
         except IntegrityError as e:
-            self.db.rollback()
+            self.session.rollback()
             raise ActionRepositoryError(
                 f"Action update failed due to constraint violation: {e}"
             )
         except SQLAlchemyError as e:
-            self.db.rollback()
+            self.session.rollback()
             raise ActionRepositoryError(f"Database error during action update: {e}")
 
     async def delete(self, action_id: UUID) -> bool:
@@ -266,7 +280,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
         try:
             # Get existing action
             action_model = (
-                self.db.query(ActionLibraryModel)
+                self.session.query(ActionLibraryModel)
                 .filter(ActionLibraryModel.id == action_id)
                 .first()
             )
@@ -275,16 +289,16 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
                 return False
 
             # Delete related parameters and outputs (cascade should handle this)
-            self.db.delete(action_model)
-            self.db.commit()
+            self.session.delete(action_model)
+            self.session.commit()
 
             return True
 
         except SQLAlchemyError as e:
-            self.db.rollback()
+            self.session.rollback()
             raise ActionRepositoryError(f"Database error during action deletion: {e}")
 
-    async def get_actions_by_module(self, erpnext_module: str) -> list[ActionLibrary]:
+    async def get_actions_by_module(self, erpnext_module: str) -> list[Action]:
         """
         Get actions for specific ERPNext module.
 
@@ -296,7 +310,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
         """
         try:
             query = (
-                self.db.query(ActionLibraryModel)
+                self.session.query(ActionLibraryModel)
                 .options(
                     selectinload(ActionLibraryModel.parameters),
                     selectinload(ActionLibraryModel.outputs),
@@ -330,15 +344,15 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
         try:
             # This would typically involve joins with execution/journey tables
             # For now, return basic statistics
-            total_actions = self.db.query(ActionLibraryModel).count()
+            total_actions = self.session.query(ActionLibraryModel).count()
             active_actions = (
-                self.db.query(ActionLibraryModel)
+                self.session.query(ActionLibraryModel)
                 .filter(ActionLibraryModel.is_active == True)
                 .count()
             )
 
             by_type = (
-                self.db.query(
+                self.session.query(
                     ActionLibraryModel.action_type,
                     func.count(ActionLibraryModel.id).label("count"),
                 )
@@ -347,7 +361,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
             )
 
             by_module = (
-                self.db.query(
+                self.session.query(
                     ActionLibraryModel.erpnext_module,
                     func.count(ActionLibraryModel.id).label("count"),
                 )
@@ -473,22 +487,22 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
 
         return query
 
-    def _convert_domain_to_model(self, action: ActionLibrary) -> ActionLibraryModel:
+    def _convert_domain_to_model(self, action: Action) -> ActionLibraryModel:
         """Convert domain object to database model."""
 
         return ActionLibraryModel(
-            id=action.action_id,
+            id=str(action.id),  # Convert UUID to string for database
             name=action.name,
             description=action.description,
-            action_type=action.action_type.value,
-            implementation_type=action.implementation_type.value,
-            erpnext_module=action.erpnext_module,
-            robot_framework_code=action.robot_framework_code,
-            expected_execution_time=action.expected_execution_time,
-            retry_count=action.retry_count,
-            timeout_seconds=action.timeout_seconds,
+            action_type=action.implementation_type.value,  # UI_INTERACTION, etc.
+            bdd_step_type=action.action_type.value,  # given, when, then
+            category="utility",  # Default category, could be derived from other fields
+            implementation={"robot_keywords": action.robot_keywords},  # Store robot keywords in implementation JSON
+            erpnext_doctype=action.erpnext_module,
+            default_timeout_seconds=action.execution_timeout,
+            default_retry_count=action.retry_count,
             tags=action.tags,
-            metadata=action.metadata,
+            action_metadata=action.metadata,
             is_active=action.is_active,
             created_at=action.created_at,
             updated_at=action.updated_at,
@@ -528,26 +542,25 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
         )
 
     def _update_model_from_domain(
-        self, model: ActionLibraryModel, action: ActionLibrary
+        self, model: ActionLibraryModel, action: Action
     ) -> None:
         """Update model properties from domain object."""
 
         model.name = action.name
         model.description = action.description
-        model.action_type = action.action_type.value
-        model.implementation_type = action.implementation_type.value
-        model.erpnext_module = action.erpnext_module
-        model.robot_framework_code = action.robot_framework_code
-        model.expected_execution_time = action.expected_execution_time
-        model.retry_count = action.retry_count
-        model.timeout_seconds = action.timeout_seconds
+        model.action_type = action.implementation_type.value
+        model.bdd_step_type = action.action_type.value
+        model.implementation = {"robot_keywords": action.robot_keywords}
+        model.erpnext_doctype = action.erpnext_module
+        model.default_timeout_seconds = action.execution_timeout
+        model.default_retry_count = action.retry_count
         model.tags = action.tags
-        model.metadata = action.metadata
+        model.action_metadata = action.metadata
         model.is_active = action.is_active
         model.updated_at = action.updated_at
 
     async def _update_action_parameters(
-        self, action_model: ActionLibraryModel, action: ActionLibrary
+        self, action_model: ActionLibraryModel, action: Action
     ) -> None:
         """Update action parameters."""
 
@@ -562,7 +575,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
             self.db.add(param_model)
 
     async def _update_action_outputs(
-        self, action_model: ActionLibraryModel, action: ActionLibrary
+        self, action_model: ActionLibraryModel, action: Action
     ) -> None:
         """Update action outputs."""
 
@@ -578,7 +591,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
 
     async def _convert_model_to_domain(
         self, model: ActionLibraryModel
-    ) -> ActionLibrary:
+    ) -> Action:
         """Convert database model to domain object."""
 
         # Convert parameters
@@ -610,22 +623,19 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
             outputs.append(output)
 
         # Create domain object
-        action = ActionLibrary(
-            action_id=model.id,
+        action = Action(
+            id=UUID(model.id),
             name=model.name,
             description=model.description,
-            action_type=ActionType(model.action_type),
-            implementation_type=ImplementationType(model.implementation_type),
-            erpnext_module=model.erpnext_module,
+            action_type=ActionType(model.bdd_step_type),
+            erpnext_module=model.erpnext_doctype,
+            implementation_type=ImplementationType(model.action_type),
             parameters=parameters,
-            outputs=outputs,
-            robot_framework_code=model.robot_framework_code,
-            expected_execution_time=model.expected_execution_time,
-            retry_count=model.retry_count,
-            timeout_seconds=model.timeout_seconds,
-            tags=model.tags or [],
-            metadata=model.metadata or {},
-            is_active=model.is_active,
+            expected_outputs=outputs,
+            robot_keywords=model.implementation.get("robot_keywords", []) if model.implementation else [],
+            execution_timeout=model.default_timeout_seconds,
+            retry_count=model.default_retry_count,
+            metadata=model.action_metadata,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )

@@ -267,8 +267,23 @@ def _configure_routes(app: "FastAPI") -> None:
             logger.error(f"Failed to include personas router: {e2}")
         pass  # Personas module not ready yet
 
+    try:
+        from .journeys.journey_routes import router as journeys_router
+        app.include_router(journeys_router, prefix="/api/v1")
+        logger.info("Journeys router included successfully")
+    except Exception as e:
+        logger.error(f"Failed to include journeys router: {e}")
+        pass  # Journeys module not ready yet
+
+    try:
+        from .actions.action_routes import router as actions_router
+        app.include_router(actions_router, prefix="/api/v1")
+        logger.info("Actions router included successfully")
+    except Exception as e:
+        logger.error(f"Failed to include actions router: {e}")
+        pass  # Actions module not ready yet
+
     # TODO: Add remaining route includes when implemented
-    # app.include_router(journeys.router, prefix="/journeys", tags=["Journeys"])
     # app.include_router(test_generation.router, prefix="/test-generation", tags=["Test Generation"])
 
 

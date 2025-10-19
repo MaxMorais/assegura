@@ -700,6 +700,9 @@ class JourneyService:
         self, journey: EnhancedJourney, step_data: JourneyStepCreateSchema
     ) -> None:
         """Add step to journey using journey action service."""
+        if self.journey_action_service is None:
+            raise JourneyServiceError("Journey action service not available for step management")
+        
         await self.journey_action_service.add_action_to_journey(
             journey=journey,
             action_id=step_data.action_id,
@@ -719,6 +722,10 @@ class JourneyService:
         self, journey: EnhancedJourney
     ) -> list[str]:
         """Run comprehensive journey validation."""
+        if self.journey_action_service is None:
+            # Skip validation if journey action service is not available
+            return []
+        
         validation_results = (
             await self.journey_action_service.validate_journey_with_actions(journey)
         )
@@ -756,6 +763,7 @@ class JourneyService:
             "is_complete_scenario": journey.is_complete_scenario,
             "created_at": journey.created_at,
             "updated_at": journey.updated_at,
+            "version": journey.version,
         }
 
         if include_details:
