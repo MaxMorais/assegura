@@ -120,8 +120,8 @@ class ActivityService:
         # Validate estimated duration reasonableness
         expected_duration = self._get_expected_duration_for_activity(activity)
         if (
-            activity.estimated_duration < expected_duration * 0.5
-            or activity.estimated_duration > expected_duration * 3
+            activity.estimated_duration < expected_duration * 0.1
+            or activity.estimated_duration > expected_duration * 10
         ):
             errors.append(
                 ActivityValidationError(

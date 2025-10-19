@@ -14,7 +14,7 @@ from src.api.main import app
 from src.infrastructure.database import get_sync_db
 from src.infrastructure.database.models.base import Base
 # Force model imports to use testing types
-from src.infrastructure.database.models import activity_model, persona_model
+from src.infrastructure.database.models import activity_model, persona_model, journey_models
 
 
 @pytest.fixture(scope="session", autouse=True)

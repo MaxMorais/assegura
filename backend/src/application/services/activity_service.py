@@ -263,7 +263,7 @@ class ActivityApplicationService:
         """Link an activity to a persona."""
         # Verify persona and activity exist
         persona_id_uuid = persona_id if isinstance(persona_id, uuid.UUID) else uuid.UUID(persona_id)
-        persona = self.persona_repository.find_by_id(persona_id_uuid)
+        persona = await self.persona_repository.find_by_id(persona_id_uuid)
         if not persona:
             raise ActivityNotFoundError(
                 persona_id
@@ -385,7 +385,7 @@ class ActivityApplicationService:
 
     async def get_activity_personas(
         self, activity_id: str, page: int = 1, per_page: int = 20
-    ) -> ActivityListResponseDTO:
+    ) -> list[ActivityPersonaLinkResponseDTO]:
         """Get personas linked to an activity."""
         # Verify activity exists
         activity = await self.activity_repository.get_by_id(uuid.UUID(activity_id))
@@ -397,31 +397,7 @@ class ActivityApplicationService:
             uuid.UUID(activity_id), page, per_page
         )
 
-        # Get personas and convert to DTOs
-        activity_personas = []
-        for link in links:
-            persona = await self.persona_repository.find_by_id(link.persona_id)
-            if persona:
-                activity_personas.append(
-                    {
-                        "persona": persona.to_dict(),  # Assuming persona has to_dict method
-                        "link": self._link_to_dto(link),
-                    }
-                )
-
-        # Get total count
-        total = await self.activity_persona_link_repository.count_by_activity_id(
-            uuid.UUID(activity_id)
-        )
-
-        return ActivityListResponseDTO(
-            items=activity_personas,
-            total=total,
-            page=page,
-            per_page=per_page,
-            has_next=page * per_page < total,
-            has_prev=page > 1,
-        )
+        return [self._link_to_dto(link) for link in links]
 
     # Compatibility and Suggestions
 

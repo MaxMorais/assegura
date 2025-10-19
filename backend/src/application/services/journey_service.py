@@ -429,6 +429,9 @@ class JourneyService:
     ) -> ActionStepSchema:
         """Add a step to journey."""
         try:
+            # Debug: Check if journey exists before get_by_id
+            print(f"DEBUG: About to call get_by_id for journey {journey_id}")
+            
             journey = await self.journey_repository.get_by_id(journey_id)
             if not journey:
                 raise JourneyNotFoundError(f"Journey {journey_id} not found")

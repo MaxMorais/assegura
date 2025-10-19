@@ -96,6 +96,8 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             self.session.add(journey_model)
             self.session.flush()
 
+            print(f"DEBUG: Journey model created with ID: {journey_model.id}")
+
             # Create journey steps
             if journey.enhanced_steps:
                 for step in journey.enhanced_steps:
@@ -111,6 +113,12 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
 
             # Commit transaction
             self.session.commit()
+            print(f"DEBUG: Journey committed to database with ID: {journey_model.id}")
+
+            # Debug: Verify journey is actually in database after commit
+            verify_query = self.session.query(JourneyModel).filter(JourneyModel.id == journey_model.id)
+            verify_result = verify_query.first()
+            print(f"DEBUG: Verification query result after commit: {verify_result}")
 
             # Refresh and return converted domain object
             self.session.refresh(journey_model)
@@ -143,6 +151,12 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             Enhanced journey or None if not found
         """
         try:
+            # Debug: Check if journey exists in database
+            print(f"DEBUG: get_by_id called with journey_id: {journey_id} (type: {type(journey_id)})")
+            simple_query = self.session.query(JourneyModel).filter(JourneyModel.id == journey_id)
+            simple_result = simple_query.first()
+            print(f"DEBUG: Simple query result for journey {journey_id}: {simple_result}")
+            
             journey_model = (
                 self.session.query(JourneyModel)
                 .options(
@@ -156,6 +170,8 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                 .filter(JourneyModel.id == journey_id)
                 .first()
             )
+
+            print(f"DEBUG: Complex query result for journey {journey_id}: {journey_model}")
 
             if not journey_model:
                 return None

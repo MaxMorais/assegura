@@ -28,10 +28,15 @@ from tests.fixtures.journey_fixtures import (
 class TestJourneyAPI:
     """Test class for Journey API endpoints."""
 
-    def setup_method(self):
+    def setup_method(self, method):
         """Set up test client and dependencies."""
         self.client = TestClient(app)
         self.base_url = "/api/v1/journeys"
+
+    def setup_test_session(self, db_session):
+        """Set up test database session for sharing between requests."""
+        from src.infrastructure.database import set_test_session
+        set_test_session(db_session)
 
     def test_create_journey_success(self, test_db_session: Session):
         """Test successful journey creation."""
@@ -270,16 +275,27 @@ class TestJourneyStepsAPI:
         self.client = TestClient(app)
         self.base_url = "/api/v1/journeys"
 
+    def setup_test_session(self, db_session):
+        """Set up test database session for sharing between requests."""
+        from src.infrastructure.database import set_test_session
+        from src.infrastructure.database.models.base import Base
+        set_test_session(db_session)
+        # Set up database schema on the test session
+        Base.metadata.create_all(bind=db_session.get_bind())
+
     def test_add_journey_step_success(self, test_db_session: Session):
         """Test successful journey step addition."""
+        # Set up test session for database sharing
+        self.setup_test_session(test_db_session)
+        
         # Create journey and action
         journey_id = self._create_test_journey()
         action_id = self._create_test_action()
-        
+
         # Add step
         step_data = sample_journey_step_data(action_id=action_id)
         response = self.client.post(f"{self.base_url}/{journey_id}/steps", json=step_data)
-        
+
         assert response.status_code == 201
         step = response.json()
         assert step["action_id"] == action_id
@@ -373,13 +389,16 @@ class TestJourneyStepsAPI:
         activity_data = sample_activity_data()
         
         persona_response = self.client.post("/api/v1/personas", json=persona_data)
+        assert persona_response.status_code == 201
         persona_id = persona_response.json()["id"]
         
         activity_response = self.client.post("/api/v1/activities", json=activity_data)
+        assert activity_response.status_code == 201
         activity_id = activity_response.json()["id"]
         
         journey_data = sample_journey_data(persona_id=persona_id, activity_id=activity_id)
         response = self.client.post(self.base_url, json=journey_data)
+        assert response.status_code == 201
         return response.json()["id"]
 
     def _create_test_action(self) -> str:

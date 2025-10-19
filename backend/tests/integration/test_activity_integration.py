@@ -17,6 +17,7 @@ from src.application.dto.activity_schemas import (
     ActivityResponseDTO,
     ActivityUpdateRequestDTO,
     ActivityFilterDTO,
+    ActivityBulkOperationRequestDTO,
 )
 from src.domain.activities.exceptions import ActivityNotFoundError
 from src.application.services.activity_service import ActivityApplicationService
@@ -45,7 +46,7 @@ class TestActivityIntegration:
             "validation_rules": {"customer": {"required": True}},
             "success_criteria": ["Document created", "Status is Draft"],
             "complexity_score": 3,
-            "estimated_duration": 120,
+            "estimated_duration": 200,
             "prerequisites": ["Customer exists", "Items available"],
             "postconditions": ["Invoice saved", "Account updated"],
             "test_data_requirements": {"customer": "test_customer"},
@@ -174,6 +175,7 @@ class TestActivityIntegration:
                 "erpnext_module": "Accounts",
                 "action_type": "create",
                 "complexity_score": 3,
+                "estimated_duration": 180,  # Appropriate for create action
             },
             {
                 **sample_activity_data,
@@ -181,13 +183,15 @@ class TestActivityIntegration:
                 "erpnext_module": "Buying",
                 "action_type": "update",
                 "complexity_score": 2,
+                "estimated_duration": 120,  # Appropriate for update action
             },
             {
                 **sample_activity_data,
                 "name": "Customer List View",
                 "erpnext_module": "CRM",
-                "action_type": "list",
+                "action_type": "read",
                 "complexity_score": 1,
+                "estimated_duration": 15,  # Appropriate for read action
             },
             {
                 **sample_activity_data,
@@ -196,6 +200,7 @@ class TestActivityIntegration:
                 "action_type": "delete",
                 "complexity_score": 4,
                 "is_active": False,
+                "estimated_duration": 60,  # Appropriate for delete action
             },
         ]
 
@@ -211,7 +216,7 @@ class TestActivityIntegration:
             accounts_filter, page=1, per_page=10
         )
         assert accounts_result.total == 2
-        assert all(a.erpnext_module == "Accounts" for a in accounts_result.items)
+        assert all(a.erpnext_module == "Accounts" for a in accounts_result.activities)
 
         # Test action type filter
         create_filter = ActivityFilterDTO(action_type="create")
@@ -219,7 +224,7 @@ class TestActivityIntegration:
             create_filter, page=1, per_page=10
         )
         assert create_result.total == 1
-        assert create_result.items[0].action_type == "create"
+        assert create_result.activities[0].action_type == "create"
 
         # Test complexity filter
         low_complexity_filter = ActivityFilterDTO(complexity_score=1)
@@ -227,7 +232,7 @@ class TestActivityIntegration:
             low_complexity_filter, page=1, per_page=10
         )
         assert low_complexity_result.total == 1
-        assert low_complexity_result.items[0].complexity_score == 1
+        assert low_complexity_result.activities[0].complexity_score == 1
 
         # Test active status filter
         active_filter = ActivityFilterDTO(is_active=True)
@@ -235,7 +240,7 @@ class TestActivityIntegration:
             active_filter, page=1, per_page=10
         )
         assert active_result.total == 3
-        assert all(a.is_active for a in active_result.items)
+        assert all(a.is_active for a in active_result.activities)
 
         # Test search
         search_filter = ActivityFilterDTO(search="invoice")
@@ -252,8 +257,8 @@ class TestActivityIntegration:
             combined_filter, page=1, per_page=10
         )
         assert combined_result.total == 1
-        assert combined_result.items[0].erpnext_module == "Accounts"
-        assert combined_result.items[0].is_active is True
+        assert combined_result.activities[0].erpnext_module == "Accounts"
+        assert combined_result.activities[0].is_active is True
 
     async def test_activity_bulk_operations(
         self,
@@ -271,10 +276,12 @@ class TestActivityIntegration:
             activity_ids.append(activity.id)
 
         # Test bulk status update
-        updated_count = await activity_service.bulk_update_activity_status(
-            activity_ids[:3], False
+        bulk_request = ActivityBulkOperationRequestDTO(
+            activity_ids=[str(id) for id in activity_ids[:3]],
+            action="deactivate"
         )
-        assert updated_count == 3
+        result = await activity_service.bulk_activity_operation(bulk_request)
+        assert result.updated_count == 3
 
         # Verify status updates
         for activity_id in activity_ids[:3]:
@@ -286,13 +293,17 @@ class TestActivityIntegration:
             assert activity.is_active is True
 
         # Test bulk delete
-        deleted_count = await activity_service.bulk_delete_activities(activity_ids[2:])
-        assert deleted_count == 3
+        bulk_delete_request = ActivityBulkOperationRequestDTO(
+            activity_ids=[str(id) for id in activity_ids[2:]],
+            action="delete"
+        )
+        delete_result = await activity_service.bulk_activity_operation(bulk_delete_request)
+        assert delete_result.updated_count == 3
 
         # Verify deletions
         for activity_id in activity_ids[2:]:
-            activity = await activity_service.get_activity_by_id(activity_id)
-            assert activity is None
+            with pytest.raises(ActivityNotFoundError):
+                await activity_service.get_activity_by_id(activity_id)
 
         # Verify remaining activities
         for activity_id in activity_ids[:2]:
@@ -351,30 +362,30 @@ class TestActivityIntegration:
         stats = await activity_service.get_activity_statistics()
 
         # Verify basic counts
-        assert stats["total"] >= 4
-        assert stats["active"] >= 3
-        assert stats["inactive"] >= 1
+        assert stats.total >= 4
+        assert stats.active >= 3
+        assert stats.inactive >= 1
 
         # Verify module distribution
-        assert "Accounts" in stats["by_module"]
-        assert "Stock" in stats["by_module"]
-        assert stats["by_module"]["Accounts"] >= 2
-        assert stats["by_module"]["Stock"] >= 2
+        assert "Accounts" in stats.by_module
+        assert "Stock" in stats.by_module
+        assert stats.by_module["Accounts"] >= 2
+        assert stats.by_module["Stock"] >= 2
 
         # Verify action type distribution
-        assert "create" in stats["by_action_type"]
-        assert "update" in stats["by_action_type"]
-        assert "delete" in stats["by_action_type"]
+        assert "create" in stats.by_action_type
+        assert "update" in stats.by_action_type
+        assert "delete" in stats.by_action_type
 
         # Verify complexity distribution
-        assert stats["by_complexity"][1] >= 1
-        assert stats["by_complexity"][2] >= 1
-        assert stats["by_complexity"][3] >= 1
-        assert stats["by_complexity"][4] >= 1
+        assert stats.complexity_distribution[1] >= 1
+        assert stats.complexity_distribution[2] >= 1
+        assert stats.complexity_distribution[3] >= 1
+        assert stats.complexity_distribution[4] >= 1
 
         # Verify duration calculations
-        assert stats["avg_duration"] > 0
-        assert stats["total_duration"] > 0
+        assert stats.avg_duration > 0
+        assert stats.total_duration > 0
 
     async def test_activity_validation_and_business_rules(
         self, activity_service: ActivityApplicationService
@@ -439,6 +450,7 @@ class TestActivityIntegration:
     async def test_activity_persona_relationships(
         self,
         activity_service: ActivityApplicationService,
+        persona_repository: SQLAlchemyPersonaRepository,
         sample_activity_data: dict[str, Any],
     ):
         """Test activity-persona relationship management."""
@@ -447,34 +459,51 @@ class TestActivityIntegration:
         activity_request = ActivityCreateRequestDTO(**sample_activity_data)
         activity = await activity_service.create_activity(activity_request)
 
-        # Create mock persona IDs for testing
-        persona_id_1 = uuid.uuid4()
-        persona_id_2 = uuid.uuid4()
+        # Create test personas
+        from src.domain.personas.persona import Persona
+        
+        persona1 = Persona(
+            name="Test Sales Manager",
+            description="A sales manager persona for testing activity relationships",
+            erpnext_roles=["Sales Manager", "Sales User"],
+        )
+        persona1_saved = await persona_repository.save(persona1)
+        
+        persona2 = Persona(
+            name="Test Accountant",
+            description="An accountant persona for testing activity relationships", 
+            erpnext_roles=["Accounts Manager", "Accounts User"],
+        )
+        persona2_saved = await persona_repository.save(persona2)
 
         # Create activity-persona links
         from src.application.dto.activity_schemas import (
-            ActivityPersonaLinkCreateRequest,
+            ActivityPersonaLinkCreateRequestDTO,
         )
 
-        link1_request = ActivityPersonaLinkCreateRequest(
-            persona_id=persona_id_1,
+        link1_request = ActivityPersonaLinkCreateRequestDTO(
+            persona_id=persona1_saved.id,
             activity_id=activity.id,
             priority="high",
             notes="Primary persona for this activity",
             is_primary=True,
             execution_order=1,
         )
-        link1 = await activity_service.create_activity_persona_link(link1_request)
+        link1 = await activity_service.link_activity_to_persona(
+            persona1_saved.id, activity.id, link1_request
+        )
 
-        link2_request = ActivityPersonaLinkCreateRequest(
-            persona_id=persona_id_2,
+        link2_request = ActivityPersonaLinkCreateRequestDTO(
+            persona_id=persona2_saved.id,
             activity_id=activity.id,
             priority="medium",
             notes="Secondary persona",
             is_primary=False,
             execution_order=2,
         )
-        link2 = await activity_service.create_activity_persona_link(link2_request)
+        link2 = await activity_service.link_activity_to_persona(
+            persona2_saved.id, activity.id, link2_request
+        )
 
         # Verify links were created
         activity_personas = await activity_service.get_activity_personas(activity.id)
@@ -492,18 +521,20 @@ class TestActivityIntegration:
         with pytest.raises(
             Exception
         ):  # Should raise ActivityPersonaLinkAlreadyExistsError
-            duplicate_request = ActivityPersonaLinkCreateRequest(
-                persona_id=persona_id_1, activity_id=activity.id, priority="low"
+            duplicate_request = ActivityPersonaLinkCreateRequestDTO(
+                persona_id=persona1_saved.id, activity_id=activity.id, priority="low"
             )
-            await activity_service.create_activity_persona_link(duplicate_request)
+            await activity_service.link_activity_to_persona(
+                persona1_saved.id, activity.id, duplicate_request
+            )
 
         # Test link deletion
-        await activity_service.delete_activity_persona_link(persona_id_1, activity.id)
+        await activity_service.unlink_activity_from_persona(persona1_saved.id, activity.id)
 
         # Verify deletion
         remaining_personas = await activity_service.get_activity_personas(activity.id)
         assert len(remaining_personas) == 1
-        assert remaining_personas[0].persona_id == persona_id_2
+        assert remaining_personas[0].persona_id == str(persona2_saved.id)
 
 
 class TestActivityAPIIntegration:
@@ -573,7 +604,7 @@ class TestActivityAPIIntegration:
         assert get_response.status_code == 200
         data = get_response.json()
         assert data["id"] == activity_id
-        assert data["name"] == sample_activity_data["name"]
+        assert data["name"] == activity_data["name"]
         assert data["description"] == sample_activity_data["description"]
 
     async def test_list_activities_api(
@@ -608,7 +639,7 @@ class TestActivityAPIIntegration:
         response = await async_client.get("/api/v1/activities/")
         assert response.status_code == 200
         data = response.json()
-        assert "items" in data
+        assert "activities" in data
         assert "total" in data
         assert "page" in data
         assert "per_page" in data
@@ -620,7 +651,7 @@ class TestActivityAPIIntegration:
         data = response.json()
         assert data["total"] >= 2
         assert all(
-            activity["erpnext_module"] == "CRM" for activity in data["items"]
+            activity["erpnext_module"] == "CRM" for activity in data["activities"]
         )
 
         # Test search
@@ -710,12 +741,13 @@ class TestActivityAPIIntegration:
             assert get_response.json()["is_active"] is False
 
         # Test bulk delete
-        delete_response = await async_client.request(
-            "DELETE", "/api/v1/activities/bulk", json=activity_ids
+        delete_request = {"activity_ids": activity_ids, "action": "delete"}
+        delete_response = await async_client.post(
+            "/api/v1/activities/bulk", json=delete_request
         )
         assert delete_response.status_code == 200
         data = delete_response.json()
-        assert data["deleted_count"] == 3
+        assert data["updated_count"] == 3
 
         # Verify deletions
         for activity_id in activity_ids:
@@ -746,6 +778,6 @@ class TestActivityAPIIntegration:
         assert isinstance(data["inactive"], int)
         assert isinstance(data["by_module"], dict)
         assert isinstance(data["by_action_type"], dict)
-        assert isinstance(data["by_complexity"], dict)
+        assert isinstance(data["complexity_distribution"], dict)
         assert isinstance(data["avg_duration"], (int, float))
         assert isinstance(data["total_duration"], (int, float))

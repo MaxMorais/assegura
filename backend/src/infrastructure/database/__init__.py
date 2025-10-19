@@ -6,7 +6,7 @@ with support for multi-tenant architecture and connection pooling.
 
 import logging
 from collections.abc import AsyncGenerator, Generator
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -123,6 +123,7 @@ class DatabaseManager:
         finally:
             session.close()
 
+    @asynccontextmanager
     async def get_async_session(self) -> AsyncGenerator[AsyncSession, None]:
         """Get asynchronous database session with automatic cleanup.
 
