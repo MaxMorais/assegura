@@ -156,7 +156,7 @@ class JourneyActionService:
             JourneyValidationError: If action cannot be added
         """
         # Retrieve action
-        action = await self.action_repository.get_action_by_id(action_id)
+        action = await self.action_repository.get_by_id(action_id)
         if not action:
             raise JourneyValidationError(f"Action {action_id} not found")
 

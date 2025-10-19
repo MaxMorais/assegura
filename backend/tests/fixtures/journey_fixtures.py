@@ -78,7 +78,6 @@ def sample_action_data():
 def sample_journey_step_data(action_id=None):
     """Sample journey step data for testing."""
     return {
-        "step_number": 1,
         "action_id": action_id or "test-action-id",
         "action_name": "Test Action",
         "action_type": "when",

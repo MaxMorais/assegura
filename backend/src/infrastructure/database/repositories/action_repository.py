@@ -110,7 +110,7 @@ class SQLAlchemyActionRepository(BaseRepository, ActionRepositoryInterface):
                     selectinload(ActionLibraryModel.parameters),
                     selectinload(ActionLibraryModel.outputs),
                 )
-                .filter(ActionLibraryModel.id == action_id)
+                .filter(ActionLibraryModel.id == str(action_id))
             )
 
             action_model = query.first()

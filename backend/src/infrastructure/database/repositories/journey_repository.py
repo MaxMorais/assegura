@@ -153,7 +153,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         try:
             # Debug: Check if journey exists in database
             print(f"DEBUG: get_by_id called with journey_id: {journey_id} (type: {type(journey_id)})")
-            simple_query = self.session.query(JourneyModel).filter(JourneyModel.id == journey_id)
+            simple_query = self.session.query(JourneyModel).filter(JourneyModel.id == str(journey_id))
             simple_result = simple_query.first()
             print(f"DEBUG: Simple query result for journey {journey_id}: {simple_result}")
             
@@ -167,7 +167,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                     joinedload(JourneyModel.persona),
                     joinedload(JourneyModel.activity),
                 )
-                .filter(JourneyModel.id == journey_id)
+                .filter(JourneyModel.id == str(journey_id))
                 .first()
             )
 
@@ -211,8 +211,8 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                 )
                 .filter(
                     and_(
-                        JourneyModel.persona_id == persona_id,
-                        JourneyModel.activity_id == activity_id,
+                        JourneyModel.persona_id == str(persona_id),
+                        JourneyModel.activity_id == str(activity_id),
                     )
                 )
                 .all()
@@ -373,7 +373,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                     selectinload(JourneyModel.steps),
                     selectinload(JourneyModel.execution_plan),
                 )
-                .filter(JourneyModel.id == journey_id)
+                .filter(JourneyModel.id == str(journey_id))
                 .first()
             )
 
@@ -516,7 +516,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                 try:
                     updated_count = (
                         self.session.query(JourneyModel)
-                        .filter(JourneyModel.id == journey_id)
+                        .filter(JourneyModel.id == str(journey_id))
                         .update(
                             {
                                 "execution_status": status.value,
