@@ -33,7 +33,10 @@ from ...application.dto.journey_schemas import (
     JourneyValidationSchema,
 )
 from ...application.services.action_service import ActionLibraryService
-from ...application.services.journey_service import JourneyService
+from ...application.services.journey_service import (
+    JourneyService,
+    JourneyValidationServiceError,
+)
 from ...domain.journeys.journey_action_service import JourneyActionService
 from ...infrastructure.database import get_sync_db
 from ...infrastructure.database.repositories.action_repository import (
@@ -112,6 +115,8 @@ async def create_journey(
 
     try:
         return await journey_service.create_journey(journey_data)
+    except JourneyValidationServiceError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         if "validation" in str(e).lower():
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -409,10 +414,7 @@ async def validate_journey(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Journey with ID {journey_id} not found",
             )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to validate journey: {str(e)}",
-        )
+       
 
 
 @router.post(

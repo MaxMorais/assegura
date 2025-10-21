@@ -181,12 +181,12 @@ class JourneyService:
             # Validate persona and activity exist
             if not await self.persona_service.exists(journey_data.persona_id):
                 raise JourneyValidationServiceError(
-                    f"Persona {journey_data.persona_id} does not exist"
+                    f"Persona {journey_data.persona_id} not found"
                 )
 
             if not await self.activity_service.exists(journey_data.activity_id):
                 raise JourneyValidationServiceError(
-                    f"Activity {journey_data.activity_id} does not exist"
+                    f"Activity {journey_data.activity_id} not found"
                 )
 
             # Create enhanced journey
@@ -219,6 +219,9 @@ class JourneyService:
 
             return await self._convert_to_response_schema(saved_journey)
 
+        except JourneyValidationServiceError:
+            # Re-raise validation errors without wrapping
+            raise
         except JourneyValidationError as e:
             raise JourneyValidationServiceError(str(e))
         except Exception as e:

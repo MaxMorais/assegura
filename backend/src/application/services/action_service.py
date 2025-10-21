@@ -577,6 +577,7 @@ class ActionLibraryService:
             is_active=action.is_active,
             created_at=action.created_at,
             updated_at=action.updated_at,
+            version=f"{action.version}.0.0",
         )
 
     async def _convert_to_list_item_schema(
@@ -604,12 +605,12 @@ class ActionLibraryService:
         """Convert parameter entity to schema."""
         return ActionParameterSchema(
             name=parameter.name,
-            parameter_type=parameter.parameter_type,
+            param_type=parameter.parameter_type,
+            required=parameter.is_required,
             description=parameter.description,
-            is_required=parameter.is_required,
             default_value=parameter.default_value,
             validation_rules=parameter.validation_rules,
-            example_values=parameter.example_values,
+            examples=parameter.example_values,
         )
 
     def _convert_output_to_schema(self, output: ActionOutput) -> ActionOutputSchema:
@@ -618,6 +619,5 @@ class ActionLibraryService:
             name=output.name,
             output_type=output.output_type,
             description=output.description,
-            data_path=output.data_path,
-            validation_schema=output.validation_schema,
+            required=True,  # Default to required
         )
