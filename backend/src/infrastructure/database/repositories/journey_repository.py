@@ -305,7 +305,9 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             journey_model = (
                 self.session.query(JourneyModel)
                 .options(
-                    selectinload(JourneyModel.steps),
+                    selectinload(JourneyModel.steps).selectinload(
+                        JourneyStepModel.action
+                    ),
                     selectinload(JourneyModel.execution_plan),
                 )
                 .filter(JourneyModel.id == str(journey.id))
@@ -329,10 +331,9 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
 
             # Commit changes
             self.session.commit()
-
-            # Refresh and return
-            self.session.refresh(journey_model)
-            return await self._convert_model_to_domain(journey_model)
+            
+            # Return the journey (relationships were loaded when we queried at the beginning of update)
+            return journey
 
         except JourneyRepositoryError:
             self.session.rollback()
@@ -709,16 +710,40 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         self, journey_model: JourneyModel, steps: list[ActionStepEnhanced]
     ) -> None:
         """Update journey steps, handling additions, updates, and deletions."""
-
-        # Delete existing steps
-        self.session.query(JourneyStepModel).filter(
-            JourneyStepModel.journey_id == journey_model.id
-        ).delete()
-
-        # Add new steps
+        
+        # Get existing step models
+        existing_steps = {step.step_number: step for step in journey_model.steps}
+        
+        # Track which steps we've seen
+        seen_step_numbers = set()
+        
+        # Update or create steps
         for step in steps:
-            step_model = self._convert_step_to_model(step, journey_model.id)
-            self.session.add(step_model)
+            seen_step_numbers.add(step.step_number)
+            
+            if step.step_number in existing_steps:
+                # Update existing step
+                existing_step = existing_steps[step.step_number]
+                existing_step.action_id = str(step.action.id)
+                existing_step.step_description = step.step_description
+                existing_step.parameters = step.parameters or {}
+                existing_step.expected_outputs = step.expected_outputs or []
+                existing_step.timeout_override = step.timeout_override
+                existing_step.retry_override = step.retry_override
+                existing_step.depends_on_steps = step.depends_on_steps or []
+                existing_step.can_run_parallel = step.can_run_parallel
+                existing_step.is_critical = step.is_critical
+            else:
+                # Create new step
+                step_model = self._convert_step_to_model(step, journey_model.id)
+                self.session.add(step_model)
+        
+        # Delete steps that are no longer in the journey
+        for step_number, step_model in existing_steps.items():
+            if step_number not in seen_step_numbers:
+                self.session.delete(step_model)
+        
+        self.session.flush()
 
     async def _update_execution_plan(
         self, journey_model: JourneyModel, plan: JourneyExecutionPlan
@@ -779,8 +804,18 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
     ) -> ActionStepEnhanced:
         """Convert step model to domain object."""
 
-        # Get action (this would typically be loaded via relationship)
+        # Get action - if not loaded via relationship, fetch it manually
         action_model = step_model.action
+        if action_model is None:
+            # Manually load the action
+            from src.infrastructure.database.models.action_library_models import ActionLibraryModel
+            action_model = self.session.query(ActionLibraryModel).filter(
+                ActionLibraryModel.id == step_model.action_id
+            ).first()
+            
+            if action_model is None:
+                raise ValueError(f"Action {step_model.action_id} not found for step {step_model.id}")
+        
         action = await self._convert_action_model_to_domain(action_model)
 
         return ActionStepEnhanced(
