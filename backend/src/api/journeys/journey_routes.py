@@ -34,6 +34,7 @@ from ...application.dto.journey_schemas import (
 )
 from ...application.services.action_service import ActionLibraryService
 from ...application.services.journey_service import (
+    JourneyNotFoundError,
     JourneyService,
     JourneyValidationServiceError,
 )
@@ -292,6 +293,11 @@ async def delete_journey(
             )
     except HTTPException:
         raise
+    except JourneyNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
