@@ -405,6 +405,8 @@ class TestJourneyStepsAPI:
         """Helper method to create a test action."""
         action_data = sample_action_data()
         response = self.client.post("/api/v1/actions", json=action_data)
+        if response.status_code != 201:
+            raise Exception(f"Failed to create action: {response.status_code} - {response.json()}")
         return response.json()["id"]
 
 

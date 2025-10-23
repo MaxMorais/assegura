@@ -350,21 +350,18 @@ async def get_journey_steps(
     journey_service, _ = services
 
     try:
-        journey = await journey_service.get_journey(journey_id)
-        if not journey:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Journey {journey_id} not found",
-            )
-        # Return steps in a dict format expected by the test
-        return {"steps": journey.get("steps", [])}
-    except HTTPException:
-        raise
+        # Get the journey response which includes steps
+        journey_response = await journey_service.get_journey(journey_id)
+        # Convert to dict and extract steps
+        journey_dict = journey_response.model_dump() if hasattr(journey_response, 'model_dump') else journey_response.dict()
+        return {"steps": journey_dict.get("steps", [])}
     except JourneyNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Journey {journey_id} not found",
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
