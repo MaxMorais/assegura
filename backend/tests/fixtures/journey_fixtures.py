@@ -60,8 +60,11 @@ def sample_journey_data(persona_id=None, activity_id=None, action_id=None, name=
 
 def sample_action_data():
     """Sample action data for testing."""
+    import uuid
+    # Generate unique name to avoid UNIQUE constraint violations
+    unique_suffix = str(uuid.uuid4())[:8]
     return {
-        "name": "Test Action",
+        "name": f"Test Action {unique_suffix}",
         "description": "A test action for journey testing with sufficient length to meet validation requirements",
         "action_type": "when",
         "implementation_type": "robot_framework",
