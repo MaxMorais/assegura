@@ -174,28 +174,28 @@ async def list_journeys(
         None, description="Filter by complexity level"
     ),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    name_contains: Optional[str] = Query(
-        None, description="Filter by name containing text"
+    search_text: Optional[str] = Query(
+        None, description="Text search in name/description"
     ),
-    sort_by: Optional[str] = Query("updated_at", description="Sort field"),
-    sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
+    sort_field: Optional[str] = Query("updated_at", description="Sort field"),
+    sort_direction: Optional[str] = Query("desc", description="Sort direction (asc/desc)"),
     services=Depends(get_services),
 ) -> PaginatedResponse[JourneyListItemSchema]:
     """List journeys with filtering and pagination."""
     journey_service, _ = services
 
-    # Build filters
+    # Build filters - convert singular query params to plural lists
     filters = JourneyFilterSchema(
-        persona_id=persona_id,
-        activity_id=activity_id,
-        execution_status=execution_status,
-        complexity_level=complexity_level,
+        persona_ids=[persona_id] if persona_id else None,
+        activity_ids=[activity_id] if activity_id else None,
+        execution_statuses=[execution_status] if execution_status else None,
+        complexity_levels=[complexity_level] if complexity_level else None,
         is_active=is_active,
-        name_contains=name_contains,
+        search_text=search_text,
     )
 
     # Build sorting
-    sort = JourneySortSchema(sort_by=sort_by, sort_order=sort_order)
+    sort = JourneySortSchema(field=sort_field, direction=sort_direction)
 
     try:
         return await journey_service.list_journeys(
