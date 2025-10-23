@@ -336,6 +336,42 @@ async def add_journey_step(
         )
 
 
+@router.get(
+    "/{journey_id}/steps",
+    response_model=dict,
+    summary="Get journey steps",
+    description="Get all steps for a journey",
+)
+async def get_journey_steps(
+    journey_id: uuid.UUID = Path(..., description="Journey ID"),
+    services=Depends(get_services),
+) -> dict:
+    """Get all steps for a journey."""
+    journey_service, _ = services
+
+    try:
+        journey = await journey_service.get_journey(journey_id)
+        if not journey:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Journey {journey_id} not found",
+            )
+        # Return steps in a dict format expected by the test
+        return {"steps": journey.get("steps", [])}
+    except HTTPException:
+        raise
+    except JourneyNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Journey {journey_id} not found",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get journey steps: {str(e)}",
+        )
+
+
 @router.put(
     "/{journey_id}/steps/{step_number}",
     response_model=ActionStepSchema,

@@ -75,15 +75,18 @@ def sample_action_data():
     }
 
 
-def sample_journey_step_data(action_id=None):
+def sample_journey_step_data(action_id=None, step_description=None, **kwargs):
     """Sample journey step data for testing."""
-    return {
+    data = {
         "action_id": action_id or "test-action-id",
         "action_name": "Test Action",
         "action_type": "when",
-        "step_description": "A test journey step",
+        "step_description": step_description or "A test journey step",
         "parameters": {},
         "expected_outputs": {},
         "can_run_parallel": False,
         "is_critical": True
     }
+    # Allow overriding any field via kwargs
+    data.update(kwargs)
+    return data
