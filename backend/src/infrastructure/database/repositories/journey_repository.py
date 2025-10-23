@@ -300,7 +300,12 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         Raises:
             JourneyRepositoryError: If update fails
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
+            logger.info(f"Updating journey {journey.id} with {len(journey.enhanced_steps)} steps")
+            
             # Get existing journey model
             journey_model = (
                 self.session.query(JourneyModel)
@@ -319,6 +324,8 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                     f"Journey {journey.id} not found for update"
                 )
 
+            logger.debug(f"Found journey model with {len(journey_model.steps)} existing steps")
+
             # Update journey fields
             self._update_model_from_domain(journey_model, journey)
 
@@ -330,19 +337,24 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                 await self._update_execution_plan(journey_model, journey.execution_plan)
 
             # Commit changes
+            logger.debug(f"Committing journey {journey.id} updates")
             self.session.commit()
+            logger.info(f"Successfully committed journey {journey.id} with {len(journey.enhanced_steps)} steps")
             
             # Return the journey (relationships were loaded when we queried at the beginning of update)
             return journey
 
         except JourneyRepositoryError:
             self.session.rollback()
+            logger.error(f"Journey repository error updating journey {journey.id}", exc_info=True)
             raise
         except SQLAlchemyError as e:
             self.session.rollback()
+            logger.error(f"Database error updating journey {journey.id}: {str(e)}", exc_info=True)
             raise JourneyRepositoryError(f"Database error updating journey: {str(e)}")
         except Exception as e:
             self.session.rollback()
+            logger.error(f"Unexpected error updating journey {journey.id}: {str(e)}", exc_info=True)
             raise JourneyRepositoryError(f"Unexpected error updating journey: {str(e)}")
 
     async def delete(self, journey_id: UUID) -> bool:
@@ -663,7 +675,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             action_id=str(step.action.id),
             step_description=step.step_description,
             parameters=step.parameters or {},
-            expected_outputs=step.expected_outputs or [],
+            expected_outputs=step.expected_outputs or {},  # FIXED: Use dict not list
             timeout_override=step.timeout_override,
             retry_override=step.retry_override,
             depends_on_steps=step.depends_on_steps or [],
@@ -711,8 +723,14 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
     ) -> None:
         """Update journey steps, handling additions, updates, and deletions."""
         
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.debug(f"Updating journey {journey_model.id} steps: {len(steps)} steps requested")
+        
         # Get existing step models
         existing_steps = {step.step_number: step for step in journey_model.steps}
+        logger.debug(f"Found {len(existing_steps)} existing steps: {list(existing_steps.keys())}")
         
         # Track which steps we've seen
         seen_step_numbers = set()
@@ -724,10 +742,11 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             if step.step_number in existing_steps:
                 # Update existing step
                 existing_step = existing_steps[step.step_number]
+                logger.debug(f"Updating existing step {step.step_number}, action_id: {step.action.id}")
                 existing_step.action_id = str(step.action.id)
                 existing_step.step_description = step.step_description
                 existing_step.parameters = step.parameters or {}
-                existing_step.expected_outputs = step.expected_outputs or []
+                existing_step.expected_outputs = step.expected_outputs or {}  # FIXED: Use dict not list
                 existing_step.timeout_override = step.timeout_override
                 existing_step.retry_override = step.retry_override
                 existing_step.depends_on_steps = step.depends_on_steps or []
@@ -735,15 +754,18 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                 existing_step.is_critical = step.is_critical
             else:
                 # Create new step
+                logger.debug(f"Creating new step {step.step_number}, action_id: {step.action.id}")
                 step_model = self._convert_step_to_model(step, journey_model.id)
                 self.session.add(step_model)
         
         # Delete steps that are no longer in the journey
         for step_number, step_model in existing_steps.items():
             if step_number not in seen_step_numbers:
+                logger.debug(f"Deleting step {step_number}")
                 self.session.delete(step_model)
         
         self.session.flush()
+        logger.debug(f"Flushed journey steps updates")
 
     async def _update_execution_plan(
         self, journey_model: JourneyModel, plan: JourneyExecutionPlan
@@ -807,6 +829,10 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         # Get action - if not loaded via relationship, fetch it manually
         action_model = step_model.action
         if action_model is None:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Action relationship not loaded for step {step_model.id}, fetching manually. Action ID: {step_model.action_id}")
+            
             # Manually load the action
             from src.infrastructure.database.models.action_library_models import ActionLibraryModel
             action_model = self.session.query(ActionLibraryModel).filter(
@@ -814,6 +840,13 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             ).first()
             
             if action_model is None:
+                logger.error(f"Action {step_model.action_id} not found in database for step {step_model.id}")
+                logger.error(f"Step details: journey_id={step_model.journey_id}, step_number={step_model.step_number}")
+                
+                # Debug: List all actions in database
+                all_actions = self.session.query(ActionLibraryModel).all()
+                logger.error(f"Available actions in DB: {[(a.id, a.name) for a in all_actions]}")
+                
                 raise ValueError(f"Action {step_model.action_id} not found for step {step_model.id}")
         
         action = await self._convert_action_model_to_domain(action_model)
@@ -823,7 +856,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             action=action,
             parameters=step_model.parameters or {},
             step_description=step_model.step_description,
-            expected_outputs=step_model.expected_outputs or [],
+            expected_outputs=step_model.expected_outputs or {},  # FIXED: Use dict not list
             timeout_override=step_model.timeout_override,
             retry_override=step_model.retry_override,
             depends_on_steps=step_model.depends_on_steps or [],
@@ -854,16 +887,17 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
     ) -> Action:
         """Convert action model to domain object."""
 
-        # This would be implemented based on the ActionLibraryModel structure
-        # For now, return a minimal action object
-        return Action.create(
+        # Use constructor directly to preserve the database ID
+        # DO NOT use Action.create() as it generates a new UUID!
+        return Action(
+            id=UUID(action_model.id),  # CRITICAL: Use existing ID from database
             name=action_model.name,
             description=action_model.description,
             action_type=ActionType(action_model.bdd_step_type),  # Use bdd_step_type for action type
             erpnext_module=action_model.erpnext_doctype or "Unknown",
             implementation_type=ImplementationType(action_model.action_type),  # Use action_type for implementation type
             parameters=[],  # Would need to be converted from model
-            expected_outputs=[],  # Would need to be converted from model
+            expected_outputs={},  # FIXED: Use dict not list to match domain model
             robot_keywords=action_model.implementation.get("robot_keywords", []) if action_model.implementation else [],
             validation_rules=action_model.action_metadata.get("validation_rules", {}) if action_model.action_metadata else {},
             tags=action_model.tags or [],
@@ -872,5 +906,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             execution_timeout=action_model.default_timeout_seconds or 30,
             retry_count=action_model.default_retry_count or 0,
             metadata=action_model.action_metadata or {},
+            created_at=action_model.created_at,
+            updated_at=action_model.updated_at,
         )
 

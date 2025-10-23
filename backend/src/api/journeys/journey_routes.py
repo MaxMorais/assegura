@@ -325,11 +325,16 @@ async def add_journey_step(
 
     try:
         return await journey_service.add_journey_step(journey_id, step_data)
+    except JourneyNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except JourneyValidationServiceError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        if "not found" in str(e).lower():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-        elif "validation" in str(e).lower():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        import logging
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error adding journey step: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to add journey step: {str(e)}",
@@ -363,6 +368,11 @@ async def get_journey_steps(
     except HTTPException:
         raise
     except Exception as e:
+        import logging
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error getting journey steps: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get journey steps: {str(e)}",
