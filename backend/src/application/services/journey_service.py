@@ -279,10 +279,11 @@ class JourneyService:
 
             return PaginatedResponse(
                 items=items,
-                total_count=total_count,
+                total=total_count,
                 offset=offset,
                 limit=limit,
                 has_next=offset + limit < total_count,
+                has_prev=offset > 0,
             )
 
         except Exception as e:

@@ -389,39 +389,36 @@ class JourneyExecutionResultSchema(BaseModel):
 class JourneyFilterSchema(BaseModel):
     """Schema for journey filtering parameters."""
 
-    persona_id: Optional[UUID] = Field(None, description="Filter by persona")
-    activity_id: Optional[UUID] = Field(None, description="Filter by activity")
-    execution_status: Optional[JourneyStatusEnum] = Field(
-        None, description="Filter by status"
+    persona_ids: Optional[list[UUID]] = Field(None, description="Filter by persona IDs")
+    activity_ids: Optional[list[UUID]] = Field(None, description="Filter by activity IDs")
+    execution_statuses: Optional[list[JourneyStatusEnum]] = Field(
+        None, description="Filter by execution statuses"
     )
-    complexity_level: Optional[ComplexityLevelEnum] = Field(
-        None, description="Filter by complexity"
+    complexity_levels: Optional[list[ComplexityLevelEnum]] = Field(
+        None, description="Filter by complexity levels"
     )
     is_active: Optional[bool] = Field(None, description="Filter by active status")
-    has_complete_bdd: Optional[bool] = Field(
-        None, description="Filter by BDD completeness"
-    )
-    min_steps: Optional[int] = Field(None, ge=0, description="Minimum number of steps")
-    max_steps: Optional[int] = Field(None, ge=0, description="Maximum number of steps")
-    erpnext_modules: Optional[list[str]] = Field(
-        None, description="Filter by ERPNext modules"
-    )
+    has_steps: Optional[bool] = Field(None, description="Filter by presence of steps")
+    min_duration_minutes: Optional[int] = Field(None, ge=0, description="Minimum duration in minutes")
+    max_duration_minutes: Optional[int] = Field(None, ge=0, description="Maximum duration in minutes")
+    created_after: Optional[datetime] = Field(None, description="Filter journeys created after this date")
+    created_before: Optional[datetime] = Field(None, description="Filter journeys created before this date")
+    updated_after: Optional[datetime] = Field(None, description="Filter journeys updated after this date")
+    updated_before: Optional[datetime] = Field(None, description="Filter journeys updated before this date")
+    search_text: Optional[str] = Field(None, description="Text search in name/description")
     tags: Optional[list[str]] = Field(None, description="Filter by tags in metadata")
-    text_search: Optional[str] = Field(
-        None, description="Text search in name/description"
-    )
 
 
 class JourneySortSchema(BaseModel):
     """Schema for journey sorting parameters."""
 
-    sort_by: str = Field(
+    field: str = Field(
         default="created_at",
         description="Field to sort by",
-        pattern="^(name|created_at|updated_at|step_count|complexity_level|estimated_duration_minutes)$",
+        pattern="^(name|created_at|updated_at|execution_status|complexity_level|estimated_duration_minutes)$",
     )
-    sort_order: str = Field(
-        default="desc", description="Sort order", pattern="^(asc|desc)$"
+    direction: str = Field(
+        default="desc", description="Sort direction", pattern="^(asc|desc)$"
     )
 
 
