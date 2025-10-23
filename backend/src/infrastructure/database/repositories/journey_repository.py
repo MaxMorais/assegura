@@ -151,12 +151,6 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             Enhanced journey or None if not found
         """
         try:
-            # Debug: Check if journey exists in database
-            print(f"DEBUG: get_by_id called with journey_id: {journey_id} (type: {type(journey_id)})")
-            simple_query = self.session.query(JourneyModel).filter(JourneyModel.id == str(journey_id))
-            simple_result = simple_query.first()
-            print(f"DEBUG: Simple query result for journey {journey_id}: {simple_result}")
-            
             journey_model = (
                 self.session.query(JourneyModel)
                 .options(
@@ -170,8 +164,6 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                 .filter(JourneyModel.id == str(journey_id))
                 .first()
             )
-
-            print(f"DEBUG: Complex query result for journey {journey_id}: {journey_model}")
 
             if not journey_model:
                 return None
@@ -316,7 +308,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                     selectinload(JourneyModel.steps),
                     selectinload(JourneyModel.execution_plan),
                 )
-                .filter(JourneyModel.id == journey.id)
+                .filter(JourneyModel.id == str(journey.id))
                 .first()
             )
 
@@ -667,7 +659,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         return JourneyStepModel(
             journey_id=str(journey_id),
             step_number=step.step_number,
-            action_id=str(step.action.action_id),
+            action_id=str(step.action.id),
             step_description=step.step_description,
             parameters=step.parameters or {},
             expected_outputs=step.expected_outputs or [],
@@ -771,14 +763,14 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             for step_model in sorted(model.steps, key=lambda s: s.step_number):
                 enhanced_step = await self._convert_step_model_to_domain(step_model)
                 enhanced_steps.append(enhanced_step)
-            journey.enhanced_steps = enhanced_steps
+            journey._enhanced_steps = enhanced_steps  # Use private attribute
 
         # Convert execution plan if present
         if hasattr(model, "execution_plan") and model.execution_plan:
             execution_plan = await self._convert_execution_plan_model_to_domain(
                 model.execution_plan
             )
-            journey.execution_plan = execution_plan
+            journey._execution_plan = execution_plan  # Use private attribute
 
         return journey
 
@@ -832,17 +824,18 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         return Action.create(
             name=action_model.name,
             description=action_model.description,
-            action_type=ActionType(action_model.action_type),
-            erpnext_module=action_model.erpnext_module or "Unknown",
-            implementation_type=ImplementationType(action_model.implementation_type or "ui_interaction"),
+            action_type=ActionType(action_model.bdd_step_type),  # Use bdd_step_type for action type
+            erpnext_module=action_model.erpnext_doctype or "Unknown",
+            implementation_type=ImplementationType(action_model.action_type),  # Use action_type for implementation type
             parameters=[],  # Would need to be converted from model
             expected_outputs=[],  # Would need to be converted from model
-            robot_keywords=action_model.robot_keywords or [],
-            validation_rules=action_model.validation_rules or {},
+            robot_keywords=action_model.implementation.get("robot_keywords", []) if action_model.implementation else [],
+            validation_rules=action_model.action_metadata.get("validation_rules", {}) if action_model.action_metadata else {},
             tags=action_model.tags or [],
             prerequisites=action_model.prerequisites or [],
             postconditions=action_model.postconditions or [],
-            execution_timeout=action_model.execution_timeout or 30,
-            retry_count=action_model.retry_count or 0,
+            execution_timeout=action_model.default_timeout_seconds or 30,
+            retry_count=action_model.default_retry_count or 0,
             metadata=action_model.action_metadata or {},
         )
+

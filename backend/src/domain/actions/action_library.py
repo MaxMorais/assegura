@@ -274,6 +274,11 @@ class Action(BaseEntity):
         return self._name
 
     @property
+    def action_id(self) -> UUID:
+        """Get action ID (alias for id for backward compatibility)."""
+        return self.id
+
+    @property
     def description(self) -> Optional[str]:
         """Get action description."""
         return self._description
