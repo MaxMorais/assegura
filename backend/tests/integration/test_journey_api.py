@@ -331,7 +331,7 @@ class TestJourneyStepsAPI:
         
         step_data = sample_journey_step_data(action_id=action_id)
         create_response = self.client.post(f"{self.base_url}/{journey_id}/steps", json=step_data)
-        step_id = create_response.json()["id"]
+        step_number = create_response.json()["step_number"]  # FIXED: Use step_number instead of id
         
         # Update step
         update_data = {
@@ -340,7 +340,7 @@ class TestJourneyStepsAPI:
         }
         
         response = self.client.put(
-            f"{self.base_url}/{journey_id}/steps/{step_id}",
+            f"{self.base_url}/{journey_id}/steps/{step_number}",  # FIXED: Use step_number
             json=update_data
         )
         assert response.status_code == 200
@@ -357,10 +357,10 @@ class TestJourneyStepsAPI:
         
         step_data = sample_journey_step_data(action_id=action_id)
         create_response = self.client.post(f"{self.base_url}/{journey_id}/steps", json=step_data)
-        step_id = create_response.json()["id"]
+        step_number = create_response.json()["step_number"]  # FIXED: Use step_number instead of id
         
         # Delete step
-        response = self.client.delete(f"{self.base_url}/{journey_id}/steps/{step_id}")
+        response = self.client.delete(f"{self.base_url}/{journey_id}/steps/{step_number}")  # FIXED: Use step_number
         assert response.status_code == 204
 
     def test_reorder_journey_steps_success(self, test_db_session: Session):
