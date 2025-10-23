@@ -172,8 +172,8 @@ def _configure_error_handlers(app: "FastAPI") -> None:
         logger.error(f"Unexpected error in {request.url}: {str(exc)}", exc_info=True)
 
         error_response = ErrorResponse(
+            detail="An internal server error occurred",
             error="InternalServerError",
-            message="An internal server error occurred",
             details={"url": str(request.url), "method": request.method},
         )
 

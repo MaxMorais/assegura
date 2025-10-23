@@ -570,23 +570,32 @@ class TestPersonaAPIErrorHandling:
         """Create test client."""
         return TestClient(app)
 
-    @patch("src.api.personas.persona_routes.get_persona_service")
-    @patch("src.api.personas.persona_routes.get_current_consultant_id")
-    def test_internal_server_error_handling(
-        self, mock_get_consultant, mock_get_persona_service, client
-    ):
+    def test_internal_server_error_handling(self, client):
         """Test handling of unexpected internal server errors."""
-        # Setup mocks
-        mock_get_consultant.return_value = uuid.uuid4()
-        mock_get_persona_service.side_effect = Exception("Database connection failed")
+        from src.api.personas.persona_routes import get_persona_service, get_current_consultant_id
+        
+        # Mock functions to inject via dependency_overrides
+        def mock_get_consultant():
+            return uuid.uuid4()
+        
+        def mock_get_service():
+            raise Exception("Database connection failed")
+        
+        # Override FastAPI dependencies
+        app.dependency_overrides[get_current_consultant_id] = mock_get_consultant
+        app.dependency_overrides[get_persona_service] = mock_get_service
+        
+        try:
+            # Make request
+            response = client.get("/api/v1/personas/")
 
-        # Make request
-        response = client.get("/api/v1/personas/")
-
-        # Assertions
-        assert response.status_code == 500
-        response_data = response.json()
-        assert "detail" in response_data
+            # Assertions
+            assert response.status_code == 500
+            response_data = response.json()
+            assert "detail" in response_data
+        finally:
+            # Clean up overrides
+            app.dependency_overrides.clear()
 
     @patch("src.infrastructure.database.get_sync_db")
     @patch("src.api.personas.persona_routes.get_current_consultant_id")

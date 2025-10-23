@@ -127,8 +127,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             )
 
         error_response = ErrorResponse(
+            detail=str(exc.detail),
             error=exc.__class__.__name__,
-            message=str(exc.detail),
             details={"status_code": exc.status_code, "request_id": request_id},
         )
 
@@ -189,7 +189,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             )
 
         error_response = ValidationErrorResponse(
-            message="Request validation failed",
+            detail="Request validation failed",
             validation_errors=validation_errors,
             request_id=request_id,
         )
@@ -249,7 +249,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             )
 
         error_response = ValidationErrorResponse(
-            message="Data validation failed",
+            detail="Data validation failed",
             validation_errors=validation_errors,
             request_id=request_id,
         )
@@ -297,8 +297,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             )
 
         error_response = ErrorResponse(
+            detail="Insufficient permissions to access this resource",
             error="PermissionDenied",
-            message="Insufficient permissions to access this resource",
             details={"request_id": request_id, "resource": str(request.url.path)},
         )
 
@@ -346,8 +346,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             )
 
         error_response = ErrorResponse(
+            detail=str(exc) if str(exc) else "Invalid input value provided",
             error="InvalidValue",
-            message=str(exc) if str(exc) else "Invalid input value provided",
             details={"request_id": request_id, "error_type": "ValueError"},
         )
 
@@ -396,8 +396,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             )
 
         error_response = ErrorResponse(
+            detail="A system error occurred while processing your request",
             error="RuntimeError",
-            message="A system error occurred while processing your request",
             details={"request_id": request_id, "error_type": "RuntimeError"},
         )
 
@@ -508,8 +508,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             )
 
         error_response = ErrorResponse(
+            detail="An unexpected error occurred while processing your request",
             error="InternalServerError",
-            message="An unexpected error occurred while processing your request",
             details={"request_id": request_id, "error_type": exc.__class__.__name__},
         )
 
