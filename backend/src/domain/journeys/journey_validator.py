@@ -88,6 +88,12 @@ class BDDSequenceRule(JourneyValidationRule):
         results = []
 
         if not journey.enhanced_steps:
+            results.append(
+                self._create_result(
+                    "Journey must have at least one step",
+                    suggested_fix="Add Given/When/Then steps to define the test scenario",
+                )
+            )
             return results
 
         # Check for complete BDD flow
@@ -691,11 +697,12 @@ class JourneyValidator:
             "total_issues": len(results),
             "results": [
                 {
-                    "rule": r.rule_name,
+                    "rule_name": r.rule_name,
                     "severity": r.severity.value,
                     "message": r.message,
                     "affected_steps": r.affected_steps,
                     "suggested_fix": r.suggested_fix,
+                    "is_blocking": r.is_blocking,
                 }
                 for r in results
             ],

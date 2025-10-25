@@ -434,7 +434,6 @@ class TestJourneyValidationAPI:
         assert "warning_count" in validation
         assert "results" in validation
 
-    @pytest.mark.xfail(reason="Journey validation logic doesn't properly detect empty journey as invalid")
     def test_validate_journey_with_errors(self, test_db_session: Session):
         """Test journey validation with validation errors."""
         # Create journey without steps (should have validation errors)

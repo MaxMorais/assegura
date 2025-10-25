@@ -207,12 +207,14 @@ class JourneyService:
                 for step_data in journey_data.steps:
                     await self._add_step_to_journey(journey, step_data)
 
-            # Validate journey
-            validation_errors = await self._validate_journey_comprehensive(journey)
-            if validation_errors:
-                raise JourneyValidationServiceError(
-                    f"Journey validation failed: {validation_errors}"
-                )
+            # Validate journey only if it has steps
+            # Allow empty journeys to be created in draft state
+            if journey.enhanced_steps:
+                validation_errors = await self._validate_journey_comprehensive(journey)
+                if validation_errors:
+                    raise JourneyValidationServiceError(
+                        f"Journey validation failed: {validation_errors}"
+                    )
 
             # Save to repository
             saved_journey = await self.journey_repository.create(journey)
@@ -334,12 +336,14 @@ class JourneyService:
             if update_data.metadata is not None:
                 journey.update_metadata(update_data.metadata)
 
-            # Validate updated journey
-            validation_errors = await self._validate_journey_comprehensive(journey)
-            if validation_errors:
-                raise JourneyValidationServiceError(
-                    f"Journey validation failed: {validation_errors}"
-                )
+            # Validate updated journey only if it has steps
+            # Allow empty journeys to remain in draft state
+            if journey.enhanced_steps:
+                validation_errors = await self._validate_journey_comprehensive(journey)
+                if validation_errors:
+                    raise JourneyValidationServiceError(
+                        f"Journey validation failed: {validation_errors}"
+                    )
 
             # Save updates
             updated_journey = await self.journey_repository.update(journey)
