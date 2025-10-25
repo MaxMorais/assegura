@@ -463,7 +463,11 @@ async def validate_journey(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Journey with ID {journey_id} not found",
             )
-       
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to validate journey: {str(e)}",
+        )
+
 
 
 @router.post(

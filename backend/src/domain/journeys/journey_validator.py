@@ -7,7 +7,7 @@ ERPNext business rules, and test automation best practices.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
@@ -31,7 +31,7 @@ class ValidationResult:
     rule_name: str
     severity: ValidationSeverity
     message: str
-    affected_steps: list[int] = None
+    affected_steps: list[int] = field(default_factory=list)
     suggested_fix: Optional[str] = None
 
     @property

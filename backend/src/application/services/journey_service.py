@@ -545,10 +545,13 @@ class JourneyService:
             if not journey:
                 raise JourneyNotFoundError(f"Journey {journey_id} not found")
 
-            # Run validation
-            validation_results = (
-                await self.journey_action_service.validate_journey_with_actions(journey)
-            )
+            # Run validation using journey validator
+            # If journey_action_service is available, use it for action-specific validation
+            if self.journey_action_service is not None:
+                validation_results = (
+                    await self.journey_action_service.validate_journey_with_actions(journey)
+                )
+            
             summary = self.validator.get_validation_summary(journey)
 
             return JourneyValidationSchema(**summary)

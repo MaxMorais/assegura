@@ -419,7 +419,6 @@ class TestJourneyValidationAPI:
         self.client = TestClient(app)
         self.base_url = "/api/v1/journeys"
 
-    @pytest.mark.xfail(reason="Journey validation endpoint returns data not matching JourneyValidationSchema")
     def test_validate_journey_success(self, test_db_session: Session):
         """Test successful journey validation."""
         # Create valid journey
