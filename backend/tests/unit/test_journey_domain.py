@@ -291,8 +291,12 @@ class TestJourneyValidator:
         
         results = self.validator.validate_journey(journey)
         
-        # Valid journey with no steps should have no validation errors
-        assert len(results) == 0
+        # Empty journey should have validation error for missing steps
+        # The BDD validator now correctly identifies this as an error
+        assert len(results) == 1
+        assert results[0].rule_name == "BDD Sequence Rule"
+        assert results[0].severity.value == "error"
+        assert "must have at least one step" in results[0].message
 
     def test_validate_incomplete_bdd_journey(self):
         """Test validation of incomplete BDD journey."""

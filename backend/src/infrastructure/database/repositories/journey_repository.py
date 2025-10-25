@@ -7,7 +7,7 @@ comprehensive CRUD operations, complex queries, filtering, sorting, and
 relationship management with the database.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 from uuid import UUID
 
@@ -457,12 +457,11 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                 self.session.query(func.avg(step_stats.c.total_steps)).scalar() or 0
             )
 
-            # Recent activity
+            # Recent activity - database-agnostic datetime calculation
+            seven_days_ago = datetime.utcnow() - timedelta(days=7)
             recent_journeys = (
                 self.session.query(func.count(JourneyModel.id))
-                .filter(
-                    JourneyModel.created_at >= func.now() - text("INTERVAL '7 days'")
-                )
+                .filter(JourneyModel.created_at >= seven_days_ago)
                 .scalar()
             )
 

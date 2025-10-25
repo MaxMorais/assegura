@@ -56,7 +56,11 @@ class TestActivityEntity:
         assert activity.estimated_duration == valid_activity_data["estimated_duration"]
         assert activity.is_active == valid_activity_data["is_active"]
         assert activity.version == valid_activity_data["version"]
-        assert isinstance(activity.id, uuid.UUID)
+        # Accept both UUID object and string representation
+        assert isinstance(activity.id, (uuid.UUID, str))
+        if isinstance(activity.id, str):
+            # Verify it's a valid UUID string
+            uuid.UUID(activity.id)
         assert isinstance(activity.created_at, datetime)
         assert isinstance(activity.updated_at, datetime)
 

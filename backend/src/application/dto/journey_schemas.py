@@ -440,6 +440,15 @@ class JourneyStatsSchema(BaseModel):
     recent_executions: int = Field(..., description="Recent execution count")
 
 
+# Journey Step Reorder Schema
+class JourneyStepReorderSchema(BaseModel):
+    """Schema for reordering journey steps."""
+
+    step_order: list[int] = Field(
+        ..., description="New order of step numbers", min_length=1
+    )
+
+
 # Paginated Response Schemas
 class JourneyListResponse(PaginatedResponse):
     """Paginated journey list response."""

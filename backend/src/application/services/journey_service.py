@@ -538,6 +538,53 @@ class JourneyService:
         except Exception as e:
             raise JourneyServiceError(f"Failed to remove journey step: {str(e)}")
 
+    async def reorder_journey_steps(
+        self, journey_id: UUID, step_order: list[int]
+    ) -> bool:
+        """Reorder journey steps according to the provided order."""
+        try:
+            journey = await self.journey_repository.get_by_id(journey_id)
+            if not journey:
+                raise JourneyNotFoundError(f"Journey {journey_id} not found")
+
+            # Validate that step_order contains all current step numbers
+            current_steps = len(journey.enhanced_steps)
+            if len(step_order) != current_steps:
+                raise JourneyValidationServiceError(
+                    f"step_order must contain exactly {current_steps} steps, got {len(step_order)}"
+                )
+
+            # Validate all step numbers are valid and unique
+            expected_numbers = set(range(1, current_steps + 1))
+            provided_numbers = set(step_order)
+            if expected_numbers != provided_numbers:
+                raise JourneyValidationServiceError(
+                    f"step_order must contain all step numbers from 1 to {current_steps}"
+                )
+
+            # Create new ordered list of steps using the provided order
+            steps_dict = {step.step_number: step for step in journey.enhanced_steps}
+            new_steps_ordered = [steps_dict[step_num] for step_num in step_order]
+
+            # Update step numbers to reflect new order
+            for idx, step in enumerate(new_steps_ordered, start=1):
+                step.step_number = idx
+
+            # Replace the internal steps list
+            journey._enhanced_steps = new_steps_ordered
+
+            # Save updated journey
+            await self.journey_repository.update(journey)
+
+            return True
+
+        except JourneyValidationError as e:
+            raise JourneyValidationServiceError(str(e))
+        except JourneyNotFoundError:
+            raise
+        except Exception as e:
+            raise JourneyServiceError(f"Failed to reorder journey steps: {str(e)}")
+
     async def validate_journey(self, journey_id: UUID) -> JourneyValidationSchema:
         """Get comprehensive journey validation results."""
         try:
@@ -657,7 +704,40 @@ class JourneyService:
         """Get journey statistics."""
         try:
             stats_data = await self.journey_repository.get_journey_stats()
-            return JourneyStatsSchema(**stats_data)
+            
+            # Transform repository data to match schema
+            # Extract status distribution to get draft and ready counts
+            status_distribution = stats_data.get("status_distribution", {})
+            draft_journeys = status_distribution.get("draft", 0)
+            ready_journeys = status_distribution.get("ready", 0)
+            
+            # Transform complexity distribution from nested dict to simple counts
+            complexity_dist_raw = stats_data.get("complexity_distribution", {})
+            complexity_distribution = {
+                complexity: data["count"] 
+                for complexity, data in complexity_dist_raw.items()
+            }
+            
+            # Get average steps from step_statistics
+            step_stats = stats_data.get("step_statistics", {})
+            avg_steps_per_journey = step_stats.get("average_steps_per_journey", 0.0)
+            
+            # Mock most_used_modules for now (would need action data to calculate properly)
+            most_used_modules = []
+            
+            # Get recent executions count
+            recent_executions = stats_data.get("recent_journeys_7_days", 0)
+            
+            return JourneyStatsSchema(
+                total_journeys=stats_data.get("total_journeys", 0),
+                active_journeys=stats_data.get("active_journeys", 0),
+                draft_journeys=draft_journeys,
+                ready_journeys=ready_journeys,
+                avg_steps_per_journey=avg_steps_per_journey,
+                complexity_distribution=complexity_distribution,
+                most_used_modules=most_used_modules,
+                recent_executions=recent_executions,
+            )
 
         except Exception as e:
             raise JourneyServiceError(f"Failed to get journey statistics: {str(e)}")

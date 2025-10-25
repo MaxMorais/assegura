@@ -27,6 +27,7 @@ from ...application.dto.journey_schemas import (
     JourneySortSchema,
     JourneyStatsSchema,
     JourneyStepCreateSchema,
+    JourneyStepReorderSchema,
     JourneyStepUpdateSchema,
     JourneyTemplateSchema,
     JourneyUpdateSchema,
@@ -124,6 +125,28 @@ async def create_journey(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create journey: {str(e)}",
+        )
+
+
+# Statistics and Analytics
+
+
+@router.get(
+    "/statistics",
+    response_model=JourneyStatsSchema,
+    summary="Get journey statistics",
+    description="Retrieve journey usage and performance statistics",
+)
+async def get_journey_statistics(services=Depends(get_services)) -> JourneyStatsSchema:
+    """Get journey statistics."""
+    journey_service, _ = services
+
+    try:
+        return await journey_service.get_journey_statistics()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve statistics: {str(e)}",
         )
 
 
@@ -380,6 +403,43 @@ async def get_journey_steps(
 
 
 @router.put(
+    "/{journey_id}/steps/reorder",
+    status_code=status.HTTP_200_OK,
+    summary="Reorder journey steps",
+    description="Reorder all steps in a journey according to provided order",
+)
+async def reorder_journey_steps(
+    journey_id: uuid.UUID = Path(..., description="Journey ID"),
+    reorder_data: JourneyStepReorderSchema = None,
+    services=Depends(get_services),
+) -> dict[str, str]:
+    """Reorder journey steps."""
+    journey_service, _ = services
+
+    try:
+        success = await journey_service.reorder_journey_steps(
+            journey_id, reorder_data.step_order
+        )
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Journey {journey_id} not found",
+            )
+        return {"message": "Steps reordered successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        elif "validation" in str(e).lower() or "must contain" in str(e).lower():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to reorder journey steps: {str(e)}",
+        )
+
+
+@router.put(
     "/{journey_id}/steps/{step_number}",
     response_model=ActionStepSchema,
     summary="Update journey step",
@@ -552,28 +612,6 @@ async def bulk_journey_operation(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to perform bulk operation: {str(e)}",
-        )
-
-
-# Statistics and Analytics
-
-
-@router.get(
-    "/statistics",
-    response_model=JourneyStatsSchema,
-    summary="Get journey statistics",
-    description="Retrieve journey usage and performance statistics",
-)
-async def get_journey_statistics(services=Depends(get_services)) -> JourneyStatsSchema:
-    """Get journey statistics."""
-    journey_service, _ = services
-
-    try:
-        return await journey_service.get_journey_statistics()
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve statistics: {str(e)}",
         )
 
 

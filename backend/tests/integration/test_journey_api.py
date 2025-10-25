@@ -363,7 +363,6 @@ class TestJourneyStepsAPI:
         response = self.client.delete(f"{self.base_url}/{journey_id}/steps/{step_number}")  # FIXED: Use step_number
         assert response.status_code == 204
 
-    @pytest.mark.skip(reason="Reorder endpoint not yet implemented - needs POST /{journey_id}/steps/reorder")
     def test_reorder_journey_steps_success(self, test_db_session: Session):
         """Test successful journey step reordering."""
         # Create journey with multiple steps
@@ -515,7 +514,6 @@ class TestJourneyStatisticsAPI:
         self.client = TestClient(app)
         self.base_url = "/api/v1/journeys"
 
-    @pytest.mark.xfail(reason="JourneyStatsSchema mismatch with repository data structure")
     def test_get_journey_statistics_success(self, test_db_session: Session):
         """Test successful journey statistics retrieval."""
         # Create multiple journeys with different properties
