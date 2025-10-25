@@ -2,7 +2,7 @@
 streamlit
 
 # HTTP Client for API Communication  
-requests==2.31.0
+requests==2.32.5
 httpx==0.25.2
 
 # Data Manipulation and Display
@@ -32,7 +32,7 @@ python-dateutil==2.8.2
 # Development Dependencies
 pytest==7.4.3
 pytest-mock==3.12.0
-black==23.11.0
+black==24.3.0
 ruff==0.1.6
 
 # Robot Framework for UI Testing (MANDATORY per constitution)
