@@ -202,9 +202,9 @@
 - [x] T099 [P] [US4] Implement test data cleanup strategies in backend/src/domain/test_data/cleanup_service.py
 
 ### Domain Layer - Cloud Execution
-- [ ] T100 [US4] Implement Cloud Execution Queue domain entity in backend/src/domain/execution/execution_queue.py
-- [ ] T101 [P] [US4] Implement Execution Result domain entity in backend/src/domain/execution/execution_result.py  
-- [ ] T102 [P] [US4] Create execution resource management in backend/src/domain/execution/resource_manager.py
+- [x] T100 [US4] Implement Cloud Execution Queue domain entity in backend/src/domain/execution/execution_queue.py
+- [x] T101 [P] [US4] Implement Execution Result domain entity in backend/src/domain/execution/execution_result.py  
+- [x] T102 [P] [US4] Create execution resource management in backend/src/domain/execution/resource_manager.py
 
 ### Application Layer
 - [ ] T103 [US4] Create Test Generation DTO schemas in backend/src/application/dto/test_generation_schemas.py
