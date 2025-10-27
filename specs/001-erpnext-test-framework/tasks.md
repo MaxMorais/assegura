@@ -207,7 +207,7 @@
 - [x] T102 [P] [US4] Create execution resource management in backend/src/domain/execution/resource_manager.py
 
 ### Application Layer
-- [ ] T103 [US4] Create Test Generation DTO schemas in backend/src/application/dto/test_generation_schemas.py
+- [x] T103 [US4] Create Test Generation DTO schemas in backend/src/application/dto/test_generation_schemas.py
 - [ ] T104 [US4] Create Execution DTO schemas in backend/src/application/dto/execution_schemas.py
 - [ ] T105 [US4] Implement TestGenerationService in backend/src/application/services/test_generation_service.py
 - [ ] T106 [P] [US4] Implement ExecutionService in backend/src/application/services/execution_service.py
