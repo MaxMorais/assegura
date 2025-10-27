@@ -208,7 +208,7 @@
 
 ### Application Layer
 - [x] T103 [US4] Create Test Generation DTO schemas in backend/src/application/dto/test_generation_schemas.py
-- [ ] T104 [US4] Create Execution DTO schemas in backend/src/application/dto/execution_schemas.py
+- [x] T104 [US4] Create Execution DTO schemas in backend/src/application/dto/execution_schemas.py
 - [ ] T105 [US4] Implement TestGenerationService in backend/src/application/services/test_generation_service.py
 - [ ] T106 [P] [US4] Implement ExecutionService in backend/src/application/services/execution_service.py
 - [ ] T107 [P] [US4] Implement ERPNextService in backend/src/application/services/erpnext_service.py
