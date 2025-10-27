@@ -197,7 +197,7 @@
 - [x] T096 [P] [US4] Implement test data generation logic in backend/src/domain/test_generation/test_data_generator.py
 
 ### Domain Layer - Test Data Management
-- [ ] T097 [US4] Implement Test Data Set domain entity in backend/src/domain/test_data/test_data_set.py
+- [x] T097 [US4] Implement Test Data Set domain entity in backend/src/domain/test_data/test_data_set.py
 - [ ] T098 [P] [US4] Create test data templates and parameterization in backend/src/domain/test_data/data_templates.py
 - [ ] T099 [P] [US4] Implement test data cleanup strategies in backend/src/domain/test_data/cleanup_service.py
 
