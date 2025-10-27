@@ -6,7 +6,7 @@ for persistence operations with PostgreSQL database.
 
 import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Union
 
 from sqlalchemy import and_, asc, desc, func, or_
@@ -723,8 +723,8 @@ class SQLAlchemyActivityPersonaLinkRepository(
                 notes=notes,
                 is_primary=is_primary,
                 execution_order=execution_order,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
 
             self.session.add(model)

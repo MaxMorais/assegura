@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from src.application.dto.base_schemas import EntityDTO, PaginatedResponse
 
@@ -81,26 +81,30 @@ class JourneyBaseSchema(BaseModel):
         default_factory=dict, description="Additional configuration"
     )
 
-    @validator("name")
+    @classmethod
+    @field_validator("name")
     def validate_name(cls, v):
         """Validate journey name."""
         if not v.strip():
             raise ValueError("Journey name cannot be empty")
         return v.strip()
 
-    @validator("description")
+    @classmethod
+    @field_validator("description")
     def validate_description(cls, v):
         """Validate journey description."""
         if not v.strip():
             raise ValueError("Journey description cannot be empty")
         return v.strip()
 
-    @validator("prerequisites")
+    @classmethod
+    @field_validator("prerequisites")
     def validate_prerequisites(cls, v):
         """Validate prerequisites list."""
         return [item.strip() for item in v if item.strip()]
 
-    @validator("expected_outcomes")
+    @classmethod
+    @field_validator("expected_outcomes")
     def validate_expected_outcomes(cls, v):
         """Validate expected outcomes list."""
         return [item.strip() for item in v if item.strip()]
@@ -138,7 +142,8 @@ class ActionStepSchema(BaseModel):
         default=False, description="Whether step is critical for journey success"
     )
 
-    @validator("depends_on_steps")
+    @classmethod
+    @field_validator("depends_on_steps")
     def validate_dependencies(cls, v, values):
         """Validate step dependencies."""
         if v is not None:
@@ -215,14 +220,16 @@ class JourneyUpdateSchema(BaseModel):
     )
     metadata: Optional[dict[str, Any]] = Field(None, description="Updated metadata")
 
-    @validator("name")
+    @classmethod
+    @field_validator("name")
     def validate_name(cls, v):
         """Validate journey name."""
         if v is not None and not v.strip():
             raise ValueError("Journey name cannot be empty")
         return v.strip() if v else v
 
-    @validator("description")
+    @classmethod
+    @field_validator("description")
     def validate_description(cls, v):
         """Validate journey description."""
         if v is not None and not v.strip():
@@ -469,7 +476,7 @@ class JourneyBulkOperationSchema(BaseModel):
     """Schema for bulk journey operations."""
 
     journey_ids: list[UUID] = Field(
-        ..., min_items=1, max_items=100, description="Journey IDs"
+        ..., min_length=1, max_length=100, description="Journey IDs"
     )
     operation: str = Field(
         ..., pattern="^(activate|deactivate|delete|execute)$", description="Operation"

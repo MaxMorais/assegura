@@ -7,7 +7,7 @@ comprehensive CRUD operations, complex queries, filtering, sorting, and
 relationship management with the database.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
 from uuid import UUID
 
@@ -458,7 +458,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
             )
 
             # Recent activity - database-agnostic datetime calculation
-            seven_days_ago = datetime.utcnow() - timedelta(days=7)
+            seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
             recent_journeys = (
                 self.session.query(func.count(JourneyModel.id))
                 .filter(JourneyModel.created_at >= seven_days_ago)
@@ -524,7 +524,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
                         .update(
                             {
                                 "execution_status": status.value,
-                                "updated_at": datetime.utcnow(),
+                                "updated_at": datetime.now(timezone.utc),
                             }
                         )
                     )
@@ -715,7 +715,7 @@ class JourneyRepository(BaseRepository, JourneyRepositoryInterface):
         model.prerequisites = journey.prerequisites
         model.expected_outcomes = journey.expected_outcomes
         model.journey_metadata = journey.metadata or {}
-        model.updated_at = journey.updated_at or datetime.utcnow()
+        model.updated_at = journey.updated_at or datetime.now(timezone.utc)
 
     async def _update_journey_steps(
         self, journey_model: JourneyModel, steps: list[ActionStepEnhanced]

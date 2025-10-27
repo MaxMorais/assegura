@@ -5,11 +5,11 @@ for API request/response validation, following the application layer
 patterns in Domain-Driven Design architecture.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Generic, Optional, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Generic type for paginated responses
 T = TypeVar("T")
@@ -81,7 +81,8 @@ class UpdateDTO(BaseDTO):
         description="Current entity version for concurrency control", ge=1
     )
 
-    @validator("version")
+    @classmethod
+    @field_validator("version")
     def validate_version(cls, v: int) -> int:
         """Ensure version is positive for concurrency control."""
         if v < 1:
@@ -97,7 +98,8 @@ class PaginationParams(BaseDTO):
     )
     offset: int = Field(default=0, ge=0, description="Number of items to skip")
 
-    @validator("limit")
+    @classmethod
+    @field_validator("limit")
     def validate_limit(cls, v: int) -> int:
         """Ensure reasonable pagination limits."""
         if v > 100:
@@ -115,14 +117,16 @@ class PaginatedResponse(BaseDTO, Generic[T]):
     has_next: bool = Field(description="Whether there are more pages available")
     has_prev: bool = Field(description="Whether there are previous pages available")
 
-    @validator("has_next", pre=True, always=True)
+    @classmethod
+    @field_validator("has_next", mode="before")
     def calculate_has_next(cls, v: Any, values: dict[str, Any]) -> bool:
         """Calculate if there are more pages."""
         if "total" in values and "offset" in values and "limit" in values:
             return (values["offset"] + values["limit"]) < values["total"]
         return False
 
-    @validator("has_prev", pre=True, always=True)
+    @classmethod
+    @field_validator("has_prev", mode="before")
     def calculate_has_prev(cls, v: Any, values: dict[str, Any]) -> bool:
         """Calculate if there are previous pages."""
         if "offset" in values:
@@ -151,7 +155,8 @@ class SortParams(BaseDTO):
         default="asc", pattern="^(asc|desc)$", description="Sort order"
     )
 
-    @validator("sort_order")
+    @classmethod
+    @field_validator("sort_order")
     def validate_sort_order(cls, v: str) -> str:
         """Ensure sort order is valid."""
         if v.lower() not in ["asc", "desc"]:
@@ -166,7 +171,8 @@ class FilterParams(BaseDTO):
         default=None, max_length=100, description="Search term"
     )
 
-    @validator("search")
+    @classmethod
+    @field_validator("search")
     def validate_search(cls, v: Optional[str]) -> Optional[str]:
         """Clean up search term."""
         if v is not None:
@@ -185,7 +191,7 @@ class ErrorResponse(BaseDTO):
         default=None, description="Additional error details"
     )
     timestamp: str = Field(
-        default_factory=lambda: datetime.utcnow().isoformat(),
+        default_factory=lambda: datetime.now(timezone.utc).isoformat(),
         description="Error timestamp in ISO format"
     )
 
@@ -288,7 +294,8 @@ class CommonValidators:
     """Collection of reusable field validators."""
 
     @staticmethod
-    @validator("name", pre=True, always=True)
+    @classmethod
+    @field_validator("name", mode="before")
     def validate_name(cls, v: str) -> str:
         """Standard name validation."""
         if not v or not v.strip():
@@ -301,7 +308,8 @@ class CommonValidators:
         return v
 
     @staticmethod
-    @validator("description", pre=True, always=True)
+    @classmethod
+    @field_validator("description", mode="before")
     def validate_description(cls, v: Optional[str]) -> Optional[str]:
         """Standard description validation."""
         if v is not None:

@@ -8,7 +8,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class ActivityActionTypeDTO(str, Enum):
@@ -87,25 +87,29 @@ class ActivityCreateRequestDTO(BaseModel):
     tags: list[str] = Field(default_factory=list, description="Activity tags")
     is_active: bool = Field(True, description="Whether activity is active")
 
-    @validator("name")
+    @classmethod
+    @field_validator("name")
     def validate_name(cls, v):
         if not v.strip():
             raise ValueError("Name cannot be empty or whitespace only")
         return v.strip()
 
-    @validator("required_fields")
+    @classmethod
+    @field_validator("required_fields")
     def validate_required_fields(cls, v):
         if v and len(v) > 20:
             raise ValueError("Cannot have more than 20 required fields")
         return [field.strip() for field in v if field.strip()]
 
-    @validator("success_criteria")
+    @classmethod
+    @field_validator("success_criteria")
     def validate_success_criteria(cls, v):
         if v and len(v) > 10:
             raise ValueError("Cannot have more than 10 success criteria")
         return [criteria.strip() for criteria in v if criteria.strip()]
 
-    @validator("tags")
+    @classmethod
+    @field_validator("tags")
     def validate_tags(cls, v):
         if v and len(v) > 10:
             raise ValueError("Cannot have more than 10 tags")
@@ -166,13 +170,15 @@ class ActivityUpdateRequestDTO(BaseModel):
     tags: Optional[list[str]] = Field(None, description="Activity tags")
     is_active: Optional[bool] = Field(None, description="Whether activity is active")
 
-    @validator("name")
+    @classmethod
+    @field_validator("name")
     def validate_name(cls, v):
         if v is not None and not v.strip():
             raise ValueError("Name cannot be empty or whitespace only")
         return v.strip() if v else v
 
-    @validator("tags")
+    @classmethod
+    @field_validator("tags")
     def validate_tags(cls, v):
         if v is not None:
             if len(v) > 10:
@@ -215,7 +221,8 @@ class ActivityFilterDTO(BaseModel):
         None, max_length=100, description="Search in name and description"
     )
 
-    @validator("max_duration")
+    @classmethod
+    @field_validator("max_duration")
     def validate_duration_range(cls, v, values):
         if v is not None and values.get("min_duration") is not None:
             if v < values["min_duration"]:
@@ -537,11 +544,12 @@ class ActivityBulkOperationRequestDTO(BaseModel):
     """Request DTO for bulk operations on activities."""
 
     activity_ids: list[str] = Field(
-        ..., min_items=1, max_items=50, description="List of activity IDs"
+        ..., min_length=1, max_length=50, description="List of activity IDs"
     )
     action: str = Field(..., description="Bulk action to perform")
 
-    @validator("action")
+    @classmethod
+    @field_validator("action")
     def validate_action(cls, v):
         valid_actions = ["activate", "deactivate", "delete", "export"]
         if v not in valid_actions:
@@ -588,7 +596,7 @@ class ActivityBulkLinkRequestDTO(BaseModel):
     """Request DTO for bulk linking activities to personas."""
 
     activity_ids: list[str] = Field(
-        ..., min_items=1, max_items=20, description="List of activity IDs to link"
+        ..., min_length=1, max_length=20, description="List of activity IDs to link"
     )
     priority: ActivityPriorityDTO = Field(
         ActivityPriorityDTO.MEDIUM, description="Link priority for all activities"

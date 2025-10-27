@@ -8,7 +8,7 @@ updating customer information, or generating reports.
 import json
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional, Union
 
@@ -202,8 +202,8 @@ class Activity:
         self.version = version
 
         # Metadata
-        self.created_at = created_at or datetime.utcnow()
-        self.updated_at = updated_at or datetime.utcnow()
+        self.created_at = created_at or datetime.now(timezone.utc)
+        self.updated_at = updated_at or datetime.now(timezone.utc)
 
         # Validate the activity on creation
         self._validate()
@@ -586,7 +586,7 @@ class Activity:
 
     def _update_metadata(self) -> None:
         """Update metadata timestamps."""
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def __str__(self) -> str:
         """String representation of the activity."""

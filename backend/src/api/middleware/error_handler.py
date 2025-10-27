@@ -7,7 +7,7 @@ for the ERPNext Test Automation Meta-Framework API with constitutional complianc
 import logging
 import traceback
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -137,7 +137,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                 {
                     "method": request.method,
                     "url": str(request.url),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -198,7 +198,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             error_response.details = {
                 "method": request.method,
                 "raw_errors": exc.errors(),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         self._track_error("RequestValidationError")
@@ -258,7 +258,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             error_response.details = {
                 "method": request.method,
                 "raw_errors": exc.errors(),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         self._track_error("PydanticValidationError")
@@ -307,7 +307,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                 {
                     "method": request.method,
                     "original_error": str(exc),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -356,7 +356,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                 {
                     "method": request.method,
                     "url": str(request.url),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -407,7 +407,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                     "method": request.method,
                     "url": str(request.url),
                     "original_error": str(exc),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -466,7 +466,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                 {
                     "method": request.method,
                     "url": str(request.url),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -519,7 +519,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                     "method": request.method,
                     "url": str(request.url),
                     "original_error": str(exc),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -571,7 +571,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
 
         # Update error counts
         self.error_counts[error_type] = self.error_counts.get(error_type, 0) + 1
-        self.last_errors[error_type] = datetime.utcnow()
+        self.last_errors[error_type] = datetime.now(timezone.utc)
 
     def get_error_stats(self) -> dict[str, Any]:
         """Get error statistics for monitoring.

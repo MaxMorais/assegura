@@ -17,7 +17,7 @@ Domain Rules:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
 from uuid import UUID, uuid4
 
@@ -91,8 +91,8 @@ class Journey(BaseEntity):
 
         # Set BaseEntity fields
         self.id = id or uuid4()
-        self.created_at = created_at or datetime.utcnow()
-        self.updated_at = updated_at or datetime.utcnow()
+        self.created_at = created_at or datetime.now(timezone.utc)
+        self.updated_at = updated_at or datetime.now(timezone.utc)
         self.version = 1
 
         self._name = name
@@ -224,7 +224,7 @@ class Journey(BaseEntity):
             self._complexity_level = complexity_level
 
         self._validate()
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def update_associations(
         self,
@@ -247,7 +247,7 @@ class Journey(BaseEntity):
             self._activity_id = activity_id
 
         self._validate()
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def add_step(
         self,
@@ -280,7 +280,7 @@ class Journey(BaseEntity):
             self._renumber_steps()
 
         self._validate_step_sequence()
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def remove_step(self, step_number: int) -> JourneyStep:
         """
@@ -302,7 +302,7 @@ class Journey(BaseEntity):
 
         removed_step = self._steps.pop(step_number - 1)
         self._renumber_steps()
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
         return removed_step
 
@@ -327,12 +327,12 @@ class Journey(BaseEntity):
             self._steps.insert(to_position - 1, step)
             self._renumber_steps()
             self._validate_step_sequence()
-            self._updated_at = datetime.utcnow()
+            self._updated_at = datetime.now(timezone.utc)
 
     def clear_steps(self) -> None:
         """Remove all steps from the journey."""
         self._steps.clear()
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def update_prerequisites(self, prerequisites: list[str]) -> None:
         """
@@ -342,7 +342,7 @@ class Journey(BaseEntity):
             prerequisites: New list of prerequisites
         """
         self._prerequisites = prerequisites or []
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def add_prerequisite(self, prerequisite: str) -> None:
         """
@@ -353,7 +353,7 @@ class Journey(BaseEntity):
         """
         if prerequisite and prerequisite not in self._prerequisites:
             self._prerequisites.append(prerequisite)
-            self._updated_at = datetime.utcnow()
+            self._updated_at = datetime.now(timezone.utc)
 
     def remove_prerequisite(self, prerequisite: str) -> None:
         """
@@ -364,7 +364,7 @@ class Journey(BaseEntity):
         """
         if prerequisite in self._prerequisites:
             self._prerequisites.remove(prerequisite)
-            self._updated_at = datetime.utcnow()
+            self._updated_at = datetime.now(timezone.utc)
 
     def update_expected_outcomes(self, outcomes: list[str]) -> None:
         """
@@ -374,7 +374,7 @@ class Journey(BaseEntity):
             outcomes: New list of expected outcomes
         """
         self._expected_outcomes = outcomes or []
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def add_expected_outcome(self, outcome: str) -> None:
         """
@@ -385,7 +385,7 @@ class Journey(BaseEntity):
         """
         if outcome and outcome not in self._expected_outcomes:
             self._expected_outcomes.append(outcome)
-            self._updated_at = datetime.utcnow()
+            self._updated_at = datetime.now(timezone.utc)
 
     def remove_expected_outcome(self, outcome: str) -> None:
         """
@@ -396,7 +396,7 @@ class Journey(BaseEntity):
         """
         if outcome in self._expected_outcomes:
             self._expected_outcomes.remove(outcome)
-            self._updated_at = datetime.utcnow()
+            self._updated_at = datetime.now(timezone.utc)
 
     def update_metadata(self, metadata: dict[str, Any]) -> None:
         """
@@ -406,7 +406,7 @@ class Journey(BaseEntity):
             metadata: New metadata dictionary
         """
         self._metadata = metadata or {}
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def set_metadata_value(self, key: str, value: Any) -> None:
         """
@@ -417,7 +417,7 @@ class Journey(BaseEntity):
             value: Metadata value
         """
         self._metadata[key] = value
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def get_metadata_value(self, key: str, default: Any = None) -> Any:
         """
@@ -647,7 +647,7 @@ class Journey(BaseEntity):
             prerequisites=prerequisites,
             expected_outcomes=expected_outcomes,
             metadata=metadata,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
     def __str__(self) -> str:

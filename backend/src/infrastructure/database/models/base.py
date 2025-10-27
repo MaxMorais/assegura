@@ -5,13 +5,13 @@ Base classes and mixins for SQLAlchemy models in the ERPNext test automation fra
 Provides common functionality, timestamp tracking, and standard model patterns.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Column, DateTime, Integer, event
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.orm import declarative_base, declared_attr
 
 # For SQLite compatibility, use String for UUIDs in tests
 from sqlalchemy import String as UUIDType
@@ -133,14 +133,14 @@ class VersionMixin:
 @event.listens_for(TimestampMixin, "before_insert", propagate=True)
 def set_created_timestamp(mapper, connection, target):
     """Set created_at timestamp on insert."""
-    target.created_at = datetime.utcnow()
-    target.updated_at = datetime.utcnow()
+    target.created_at = datetime.now(timezone.utc)
+    target.updated_at = datetime.now(timezone.utc)
 
 
 @event.listens_for(TimestampMixin, "before_update", propagate=True)
 def set_updated_timestamp(mapper, connection, target):
     """Set updated_at timestamp on update."""
-    target.updated_at = datetime.utcnow()
+    target.updated_at = datetime.now(timezone.utc)
 
 
 # Event listeners for audit trail management

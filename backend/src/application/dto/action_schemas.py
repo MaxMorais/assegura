@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from src.application.dto.base_schemas import EntityDTO, PaginatedResponse
 
@@ -121,7 +121,8 @@ class ActionParameterSchema(BaseModel):
     ui_placeholder: str = Field(default="", description="UI placeholder text")
     ui_help_text: str = Field(default="", description="UI help text")
 
-    @validator("name")
+    @classmethod
+    @field_validator("name")
     def validate_parameter_name(cls, v):
         """Validate parameter name."""
         if not v.strip():
@@ -183,7 +184,8 @@ class ActionOutputSchema(BaseModel):
     erpnext_field: Optional[str] = Field(None, description="ERPNext field mapping")
     doctype_context: Optional[str] = Field(None, description="Related DocType")
 
-    @validator("name")
+    @classmethod
+    @field_validator("name")
     def validate_output_name(cls, v):
         """Validate output name."""
         if not v.strip():
@@ -255,26 +257,30 @@ class ActionBaseSchema(BaseModel):
         default=False, description="Whether action is deprecated"
     )
 
-    @validator("name")
+    @classmethod
+    @field_validator("name")
     def validate_action_name(cls, v):
         """Validate action name."""
         if not v.strip():
             raise ValueError("Action name cannot be empty")
         return v.strip()
 
-    @validator("description")
+    @classmethod
+    @field_validator("description")
     def validate_description(cls, v):
         """Validate action description."""
         if not v.strip():
             raise ValueError("Action description cannot be empty")
         return v.strip()
 
-    @validator("tags")
+    @classmethod
+    @field_validator("tags")
     def validate_tags(cls, v):
         """Validate and clean tags."""
         return [tag.strip().lower() for tag in v if tag.strip()]
 
-    @validator("version")
+    @classmethod
+    @field_validator("version")
     def validate_version(cls, v):
         """Validate version format."""
         import re
@@ -332,14 +338,16 @@ class ActionUpdateSchema(BaseModel):
         None, description="Updated deprecation status"
     )
 
-    @validator("name")
+    @classmethod
+    @field_validator("name")
     def validate_name(cls, v):
         """Validate action name."""
         if v is not None and not v.strip():
             raise ValueError("Action name cannot be empty")
         return v.strip() if v else v
 
-    @validator("description")
+    @classmethod
+    @field_validator("description")
     def validate_description(cls, v):
         """Validate action description."""
         if v is not None and not v.strip():
@@ -507,7 +515,7 @@ class ActionBulkOperationSchema(BaseModel):
     """Schema for bulk action operations."""
 
     action_ids: list[UUID] = Field(
-        ..., min_items=1, max_items=100, description="Action IDs"
+        ..., min_length=1, max_length=100, description="Action IDs"
     )
     operation: str = Field(
         ...,

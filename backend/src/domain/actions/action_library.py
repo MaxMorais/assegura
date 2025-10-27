@@ -8,7 +8,7 @@ specific parameters, expected outputs, and implementation details.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 from uuid import UUID, uuid4
@@ -243,8 +243,8 @@ class Action(BaseEntity):
 
         # Set BaseEntity fields
         self.id = id or uuid4()
-        self.created_at = created_at or datetime.utcnow()
-        self.updated_at = updated_at or datetime.utcnow()
+        self.created_at = created_at or datetime.now(timezone.utc)
+        self.updated_at = updated_at or datetime.now(timezone.utc)
         self.version = 1
 
         self._name = name
@@ -426,7 +426,7 @@ class Action(BaseEntity):
             self._retry_count = retry_count
 
         self._validate()
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def update_classification(
         self,
@@ -453,7 +453,7 @@ class Action(BaseEntity):
             self._implementation_type = implementation_type
 
         self._validate()
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def add_parameter(self, parameter: ActionParameter) -> None:
         """
@@ -471,7 +471,7 @@ class Action(BaseEntity):
             raise ActionValidationError(f"Parameter '{parameter.name}' already exists")
 
         self._parameters.append(parameter)
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def remove_parameter(self, parameter_name: str) -> bool:
         """
@@ -486,7 +486,7 @@ class Action(BaseEntity):
         for i, param in enumerate(self._parameters):
             if param.name == parameter_name:
                 self._parameters.pop(i)
-                self._updated_at = datetime.utcnow()
+                self._updated_at = datetime.now(timezone.utc)
                 return True
         return False
 
@@ -521,7 +521,7 @@ class Action(BaseEntity):
             raise ActionValidationError(f"Output '{output.name}' already exists")
 
         self._expected_outputs.append(output)
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def remove_expected_output(self, output_name: str) -> bool:
         """
@@ -536,7 +536,7 @@ class Action(BaseEntity):
         for i, output in enumerate(self._expected_outputs):
             if output.name == output_name:
                 self._expected_outputs.pop(i)
-                self._updated_at = datetime.utcnow()
+                self._updated_at = datetime.now(timezone.utc)
                 return True
         return False
 
@@ -548,7 +548,7 @@ class Action(BaseEntity):
             keywords: New list of keywords
         """
         self._robot_keywords = keywords or []
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def add_robot_keyword(self, keyword: str) -> None:
         """
@@ -559,7 +559,7 @@ class Action(BaseEntity):
         """
         if keyword and keyword not in self._robot_keywords:
             self._robot_keywords.append(keyword)
-            self._updated_at = datetime.utcnow()
+            self._updated_at = datetime.now(timezone.utc)
 
     def update_tags(self, tags: list[str]) -> None:
         """
@@ -569,7 +569,7 @@ class Action(BaseEntity):
             tags: New list of tags
         """
         self._tags = [tag.lower().strip() for tag in tags or [] if tag.strip()]
-        self._updated_at = datetime.utcnow()
+        self._updated_at = datetime.now(timezone.utc)
 
     def add_tag(self, tag: str) -> None:
         """
@@ -581,7 +581,7 @@ class Action(BaseEntity):
         clean_tag = tag.lower().strip()
         if clean_tag and clean_tag not in self._tags:
             self._tags.append(clean_tag)
-            self._updated_at = datetime.utcnow()
+            self._updated_at = datetime.now(timezone.utc)
 
     def remove_tag(self, tag: str) -> bool:
         """
@@ -596,7 +596,7 @@ class Action(BaseEntity):
         clean_tag = tag.lower().strip()
         if clean_tag in self._tags:
             self._tags.remove(clean_tag)
-            self._updated_at = datetime.utcnow()
+            self._updated_at = datetime.now(timezone.utc)
             return True
         return False
 
@@ -778,7 +778,7 @@ class Action(BaseEntity):
             execution_timeout=execution_timeout,
             retry_count=retry_count,
             metadata=metadata,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
     def __str__(self) -> str:

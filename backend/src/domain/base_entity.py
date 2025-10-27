@@ -5,7 +5,7 @@ in the ERPNext Test Automation Meta-Framework, implementing common patterns
 and ensuring constitutional compliance with DDD architecture.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 from uuid import UUID, uuid4
 
@@ -31,10 +31,10 @@ class BaseEntity(BaseModel):
 
     # Audit fields
     created_at: datetime = Field(
-        default_factory=datetime.utcnow, description="Creation timestamp"
+        default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp"
     )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow, description="Last update timestamp"
+        default_factory=lambda: datetime.now(timezone.utc), description="Last update timestamp"
     )
 
     # Concurrency control
@@ -66,7 +66,7 @@ class BaseEntity(BaseModel):
         Should be called whenever the entity is modified.
         This ensures proper audit trail maintenance.
         """
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def increment_version(self) -> None:
         """Increment entity version for optimistic concurrency control.
