@@ -199,7 +199,7 @@
 ### Domain Layer - Test Data Management
 - [x] T097 [US4] Implement Test Data Set domain entity in backend/src/domain/test_data/test_data_set.py
 - [x] T098 [P] [US4] Create test data templates and parameterization in backend/src/domain/test_data/data_templates.py
-- [ ] T099 [P] [US4] Implement test data cleanup strategies in backend/src/domain/test_data/cleanup_service.py
+- [x] T099 [P] [US4] Implement test data cleanup strategies in backend/src/domain/test_data/cleanup_service.py
 
 ### Domain Layer - Cloud Execution
 - [ ] T100 [US4] Implement Cloud Execution Queue domain entity in backend/src/domain/execution/execution_queue.py
